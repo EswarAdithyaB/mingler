@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="zone app">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/zone app.zip!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
