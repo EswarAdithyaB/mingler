@@ -1,2 +1,29 @@
+# ── Environment files (NEVER commit these) ──────────────
+.env
+.env.local
+.env.production
+backend/.env
+
+# ── Node modules ────────────────────────────────────────
 node_modules/
 **/node_modules/
+
+# ── Angular build output ─────────────────────────────────
+frontend/dist/
+frontend/.angular/
+
+# ── OS files ─────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Logs ─────────────────────────────────────────────────
+*.log
+npm-debug.log*
+
+# ── IDE ──────────────────────────────────────────────────
+.vscode/
+.idea/
+
+# ── Figma reference images (large, not needed in repo) ───
+figma_refs/
+*.zip

@@ -90,6 +90,8 @@ interface ZoneUser {
     </div>
   `,
   styles: [`
+    :host { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+
     .zone-screen { background: var(--bg-primary); }
 
     .zone-header {
@@ -107,11 +109,11 @@ interface ZoneUser {
     .users-count { font-size: 12px; color: var(--text-secondary); }
 
     .lounge-area {
-      flex: 1; position: relative; overflow: hidden;
+      flex: 1; min-height: 0; position: relative; overflow: hidden;
     }
 
     .lounge-bg {
-      width: 100%; height: 100%; min-height: 420px; position: relative;
+      width: 100%; height: 100%; min-height: 280px; position: relative;
       background:
         radial-gradient(ellipse at 50% 80%, rgba(76,29,149,0.5) 0%, transparent 60%),
         radial-gradient(ellipse at 20% 20%, rgba(124,58,237,0.2) 0%, transparent 40%),

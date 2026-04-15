@@ -122,7 +122,10 @@ import { Game } from '../../core/models';
     </div>
   `,
   styles: [`
+    :host { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+
     .screen-header {
+      flex-shrink: 0;
       display: flex; align-items: center; justify-content: space-between;
       padding: 16px 20px 12px;
       padding-top: calc(env(safe-area-inset-top, 0px) + 16px);
@@ -130,9 +133,12 @@ import { Game } from '../../core/models';
     }
     .header-right { display: flex; gap: 8px; align-items: center; }
 
+    /* Horizontal game-type chips — fixed row, never scrolls vertically */
     .game-types-scroll {
       display: flex; gap: 10px; padding: 14px 20px;
-      overflow-x: auto; scrollbar-width: none; flex-shrink: 0;
+      overflow-x: auto; overflow-y: visible;
+      scrollbar-width: none; flex-shrink: 0;
+      -webkit-overflow-scrolling: touch;
       &::-webkit-scrollbar { display: none; }
     }
     .game-type-card {

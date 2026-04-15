@@ -56,7 +56,7 @@ mingler/
 
 ```bash
 cd backend
-cp .env.example .env      # Fill in your values
+cp .env .env      # Fill in your values
 npm install
 npm run dev               # Starts on http://localhost:3000
 ```

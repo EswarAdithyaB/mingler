@@ -136,7 +136,11 @@ interface SettingsToggle {
     </div>
   `,
   styles: [`
+    :host { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+
+    /* Fixed header */
     .screen-header {
+      flex-shrink: 0;
       display: flex; align-items: center; justify-content: space-between;
       padding: 16px 20px 12px;
       padding-top: calc(env(safe-area-inset-top, 0px) + 16px);

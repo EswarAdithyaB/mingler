@@ -89,7 +89,10 @@ import { Connection } from '../../core/models';
     </div>
   `,
   styles: [`
+    :host { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+
     .screen-header {
+      flex-shrink: 0;
       display: flex; align-items: center; justify-content: space-between;
       padding: 16px 20px 12px;
       padding-top: calc(env(safe-area-inset-top, 0px) + 16px);
@@ -97,9 +100,11 @@ import { Connection } from '../../core/models';
     }
     .header-right { display: flex; gap: 8px; }
 
+    /* Sticky tabs row — does not scroll vertically */
     .tabs-row {
+      flex-shrink: 0;
       display: flex; border-bottom: 1px solid var(--border-subtle);
-      background: rgba(8,8,15,0.8); flex-shrink: 0;
+      background: rgba(8,8,15,0.8);
     }
     .tab {
       flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;

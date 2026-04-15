@@ -84,6 +84,14 @@ app-root {
   margin: 0 auto;
   overflow: hidden;
   background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+}
+
+// Ensure router-outlet host doesn't interfere with flex layout
+router-outlet {
+  display: none;
+  flex: 0 0 0;
 }
 
 // Screen wrapper
@@ -98,9 +106,35 @@ app-root {
 
 .screen-content {
   flex: 1;
+  min-height: 0;           // ← critical: allows flex child to shrink & scroll
   overflow-y: auto;
   overflow-x: hidden;
-  padding-bottom: calc(var(--nav-height) + var(--bottom-safe));
+  padding-bottom: calc(var(--nav-height) + var(--bottom-safe) + 8px);
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+}
+
+// Auth screens — full-height scrollable wrapper (login / register)
+.auth-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+}
+
+// Horizontal scroll row (tabs, game-type chips, etc.)
+.hscroll {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: visible;
+  flex-shrink: 0;
+  padding: 12px 20px;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   &::-webkit-scrollbar { display: none; }

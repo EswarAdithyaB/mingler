@@ -10,6 +10,7 @@ import { AuthService } from '../../../core/services/auth.service';
   imports: [CommonModule, FormsModule],
   template: `
     <div class="auth-screen gradient-bg">
+      <!-- Fixed header — never scrolls -->
       <div class="auth-header">
         <button class="back-btn" (click)="goBack()">←</button>
         <div class="auth-logo">
@@ -17,6 +18,9 @@ import { AuthService } from '../../../core/services/auth.service';
         </div>
         <div class="spacer"></div>
       </div>
+
+      <!-- Scrollable body -->
+      <div class="auth-scroll-body">
 
       <div class="auth-body animate-slide-up">
         <div class="auth-title">
@@ -52,16 +56,33 @@ import { AuthService } from '../../../core/services/auth.service';
           <span (click)="goToRegister()">Create one</span>
         </p>
       </div>
+      </div><!-- /auth-scroll-body -->
     </div>
   `,
   styles: [`
     .auth-screen {
       width: 100%; max-width: 430px; height: 100dvh;
-      margin: 0 auto; display: flex; flex-direction: column; padding: 20px 28px 40px;
+      margin: 0 auto; display: flex; flex-direction: column; overflow: hidden;
     }
+    /* Fixed top header — never scrolls */
     .auth-header {
+      flex-shrink: 0;
       display: flex; align-items: center; justify-content: space-between;
-      padding-top: env(safe-area-inset-top, 10px); margin-bottom: 32px;
+      padding: env(safe-area-inset-top, 16px) 28px 0;
+      padding-top: max(env(safe-area-inset-top, 0px), 16px);
+      padding-bottom: 4px;
+    }
+    /* Scrollable content below the header */
+    .auth-scroll-body {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 20px 28px 40px;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      scrollbar-width: none;
+      &::-webkit-scrollbar { display: none; }
     }
     .back-btn {
       width: 40px; height: 40px; border-radius: 50%; background: var(--bg-card);
@@ -75,13 +96,13 @@ import { AuthService } from '../../../core/services/auth.service';
       font-size: 20px; color: white; box-shadow: 0 0 20px var(--purple-glow);
     }
     .spacer { width: 40px; }
-    .auth-body { flex: 1; display: flex; flex-direction: column; }
+    .auth-body { display: flex; flex-direction: column; min-height: 100%; }
     .auth-title { margin-bottom: 32px; }
     .auth-title h2 { font-size: 26px; font-weight: 800; margin-bottom: 6px; }
     .auth-title p { color: var(--text-secondary); font-size: 14px; }
     .auth-form { display: flex; flex-direction: column; gap: 18px; margin-bottom: 24px; }
     .forgot { text-align: right; font-size: 13px; color: var(--purple-light); cursor: pointer; margin-top: -8px; }
-    .auth-switch { text-align: center; font-size: 14px; color: var(--text-secondary); margin-top: auto; padding-top: 20px; }
+    .auth-switch { text-align: center; font-size: 14px; color: var(--text-secondary); padding-top: 20px; padding-bottom: 8px; }
     .auth-switch span { color: var(--purple-light); cursor: pointer; font-weight: 600; margin-left: 4px; }
     .spinner {
       width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3);

@@ -2,7 +2,6 @@ require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const mongoose = require('mongoose');
 const cors = require('cors');
 
 const app = express();
@@ -32,6 +31,7 @@ app.get('/health', (req, res) => {
     status: 'ok',
     app: 'Minglr API',
     version: '1.0.0',
+    db: 'Supabase (PostgreSQL)',
     timestamp: new Date().toISOString()
   });
 });
@@ -48,9 +48,7 @@ require('./src/sockets')(io);
 // ── Error Handler ────────────────────────────────────────
 app.use((err, req, res, next) => {
   console.error('[Error]', err.message);
-  res.status(err.status || 500).json({
-    error: err.message || 'Internal server error'
-  });
+  res.status(err.status || 500).json({ error: err.message || 'Internal server error' });
 });
 
 // ── 404 ──────────────────────────────────────────────────
@@ -58,26 +56,16 @@ app.use((req, res) => {
   res.status(404).json({ error: `Route ${req.method} ${req.path} not found` });
 });
 
-// ── Database & Start ─────────────────────────────────────
+// ── Start ────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
-const MONGO_URI = process.env.MONGODB_URI || 'mongodb+srv://eswaradithya_78:mingler123@cluster0.vyzex7f.mongodb.net/?appName=Cluster0';
-
-mongoose.connect(MONGO_URI)
-  .then(() => {
-    console.log('[DB] MongoDB connected:', MONGO_URI);
-    server.listen(PORT, () => {
-      console.log(`
+server.listen(PORT, () => {
+  console.log(`
 ╔══════════════════════════════════════╗
 ║   🌐 Minglr API running on :${PORT}      ║
 ║   📡 Socket.io ready                 ║
-║   🗄️  MongoDB connected              ║
+║   🗄️  Supabase (PostgreSQL)          ║
 ╚══════════════════════════════════════╝
-      `);
-    });
-  })
-  .catch(err => {
-    console.error('[DB] Connection failed:', err.message);
-    process.exit(1);
-  });
+  `);
+});
 
 module.exports = { app, server, io };
