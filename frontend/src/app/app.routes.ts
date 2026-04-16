@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { authGuard, guestGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
   {
@@ -12,14 +13,17 @@ export const routes: Routes = [
   },
   {
     path: 'login',
+    canActivate: [guestGuard],
     loadComponent: () => import('./features/auth/login/login.component').then(m => m.LoginComponent)
   },
   {
     path: 'register',
+    canActivate: [guestGuard],
     loadComponent: () => import('./features/auth/register/register.component').then(m => m.RegisterComponent)
   },
   {
     path: 'app',
+    canActivate: [authGuard],
     loadComponent: () => import('./features/shell/shell.component').then(m => m.ShellComponent),
     children: [
       { path: '', redirectTo: 'map', pathMatch: 'full' },

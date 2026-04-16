@@ -7,10 +7,25 @@ const cors = require('cors');
 const app = express();
 const server = http.createServer(app);
 
+// cors origin function — MUST call callback(err, allowed) — never return a value
+const allowedOrigin = (origin, callback) => {
+  // no origin = same-origin request or curl
+  if (!origin) return callback(null, true);
+
+  // production: only the explicit domain
+  if (process.env.CORS_ORIGIN) {
+    return callback(null, origin === process.env.CORS_ORIGIN);
+  }
+
+  // development: accept any localhost port
+  const ok = /^http:\/\/localhost(:\d+)?$/.test(origin);
+  return callback(null, ok);
+};
+
 // ── Socket.io ────────────────────────────────────────────
 const io = new Server(server, {
   cors: {
-    origin: process.env.CORS_ORIGIN || 'http://localhost:4200',
+    origin: allowedOrigin,
     methods: ['GET', 'POST'],
     credentials: true
   },
@@ -19,11 +34,17 @@ const io = new Server(server, {
 
 // ── Middleware ───────────────────────────────────────────
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:4200',
+  origin: allowedOrigin,
   credentials: true
 }));
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// ── Request logger (every hit, before routes) ────────────
+app.use((req, _res, next) => {
+  console.log(`\n➡️  ${req.method} ${req.path}  origin="${req.headers.origin || 'none'}"  body=${JSON.stringify(req.body)}`);
+  next();
+});
 
 // ── Health Check ─────────────────────────────────────────
 app.get('/health', (req, res) => {
@@ -64,8 +85,16 @@ server.listen(PORT, () => {
 ║   🌐 Minglr API running on :${PORT}      ║
 ║   📡 Socket.io ready                 ║
 ║   🗄️  Supabase (PostgreSQL)          ║
-╚══════════════════════════════════════╝
-  `);
+╚══════════════════════════════════════╝`);
+
+  // Confirm env vars are present
+  const sbUrl = process.env.SUPABASE_URL;
+  const sbKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const jwtSec = process.env.JWT_SECRET;
+  console.log(`🔑 ENV check:`);
+  console.log(`   SUPABASE_URL             = ${sbUrl   ? sbUrl   : '❌ MISSING'}`);
+  console.log(`   SUPABASE_SERVICE_ROLE_KEY = ${sbKey  ? '✅ set (' + sbKey.slice(0,12) + '…)' : '❌ MISSING'}`);
+  console.log(`   JWT_SECRET                = ${jwtSec ? '✅ set'  : '❌ MISSING'}`);
 });
 
 module.exports = { app, server, io };

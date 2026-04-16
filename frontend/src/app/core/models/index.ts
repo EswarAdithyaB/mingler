@@ -2,12 +2,16 @@ export interface User {
   id: string;
   username: string;
   displayName: string;
+  email?: string;
   avatar?: string;
   bio?: string;
-  vibe?: string; // e.g. "chill", "social", "creative"
+  vibe?: string;           // e.g. "chill", "social", "creative"
   isAnonymous: boolean;
   isOnline?: boolean;
   currentZoneId?: string;
+  level?: number;
+  settings?: Record<string, unknown>;
+  createdAt?: string;
 }
 
 export interface Zone {
