@@ -13,13 +13,16 @@ import { Zone } from '../../core/models';
 
       <!-- ── Header ─────────────────────────────────── -->
       <div class="screen-header">
-        <div class="header-left">
+        <button class="header-icon-btn">🔍</button>
+        <div class="header-center">
           <h3>ZoneApp</h3>
           <span class="location-tag">📍 {{ locationName() }}</span>
         </div>
-        <div class="header-right">
-          <button class="header-icon-btn" (click)="refreshZones()">🔄</button>
-          <button class="header-icon-btn">🔔</button>
+        <div class="header-right-actions">
+          <button class="header-icon-btn" (click)="refreshZones()" title="Refresh">🔄</button>
+          <button class="header-icon-btn notif-btn" title="Notifications">
+            🔔<span class="notif-dot"></span>
+          </button>
         </div>
       </div>
 
@@ -55,15 +58,43 @@ import { Zone } from '../../core/models';
           </div>
         }
 
-        <!-- No Zones overlay -->
+        <!-- No Zones empty state -->
         @if (!loading() && zones().length === 0) {
-          <div class="empty-overlay">
-            <div class="empty-icon">📡</div>
-            <h3>No Zones Near You</h3>
-            <p>Be the first to discover or create a zone in your area</p>
-            <button class="btn btn-secondary btn-sm">Explore Further</button>
-            <div style="height:10px"></div>
-            <button class="btn btn-primary btn-sm" (click)="createZone()">+ Create a Zone</button>
+          <div class="empty-state">
+
+            <!-- faint grid still visible in background -->
+            <div class="empty-map-bg"></div>
+
+            <!-- centred card -->
+            <div class="empty-card animate-slide-up">
+
+              <!-- illustration -->
+              <div class="empty-illustration">
+                <div class="illus-ring illus-ring-outer"></div>
+                <div class="illus-ring illus-ring-mid"></div>
+                <div class="illus-figure">🧑‍🎒</div>
+              </div>
+
+              <h2 class="empty-title">No Zones Near You</h2>
+              <p class="empty-sub">Be the first to discover or create a zone in your area</p>
+
+              <div class="empty-actions">
+                <button class="btn btn-primary btn-full empty-btn" (click)="refreshZones()">
+                  Explore Further →
+                </button>
+                <button class="btn btn-outline btn-full empty-btn" (click)="createZone()">
+                  Create a Zone +
+                </button>
+              </div>
+
+            </div>
+
+            <!-- floating action buttons (right side) -->
+            <div class="map-fabs">
+              <button class="fab" title="Re-centre">🎯</button>
+              <button class="fab" title="Layers">◈</button>
+            </div>
+
           </div>
         }
 
@@ -135,9 +166,16 @@ import { Zone } from '../../core/models';
       background: rgba(8,8,15,0.9); backdrop-filter: blur(12px); z-index: 10;
       padding-top: calc(env(safe-area-inset-top, 0px) + 16px);
     }
-    .header-left h3 { font-size: 18px; font-weight: 700; }
+    .header-center { text-align: center; flex: 1; }
+    .header-center h3 { font-size: 18px; font-weight: 700; color: var(--purple-light); }
     .location-tag { font-size: 11px; color: var(--text-secondary); margin-top: 2px; display: block; }
-    .header-right { display: flex; gap: 8px; }
+    .header-right-actions { display: flex; align-items: center; gap: 6px; }
+    .notif-btn { position: relative; }
+    .notif-dot {
+      position: absolute; top: 4px; right: 4px;
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--pink-accent); border: 1.5px solid var(--bg-primary);
+    }
 
     /* ── Map area — fills ALL remaining vertical space ───── */
     .map-area {
@@ -219,16 +257,99 @@ import { Zone } from '../../core/models';
     }
     .user-dot { font-size: 22px; z-index: 1; }
 
-    /* ── Empty overlay ───────────────────────────────────── */
-    .empty-overlay {
+    /* ── Empty state — no zones ──────────────────────────── */
+    .empty-state {
       position: absolute; inset: 0; z-index: 5;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      padding: 32px; text-align: center; gap: 8px;
-      background: rgba(8,8,15,0.7); backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px 24px calc(var(--nav-height, 64px) + 24px);
     }
-    .empty-overlay .empty-icon { font-size: 56px; margin-bottom: 12px; }
-    .empty-overlay h3 { font-size: 20px; font-weight: 700; }
-    .empty-overlay p  { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
+
+    /* faint grid behind the card */
+    .empty-map-bg {
+      position: absolute; inset: 0; z-index: 0;
+      background:
+        repeating-linear-gradient(0deg,   transparent, transparent 39px,
+          rgba(124,58,237,0.05) 39px, rgba(124,58,237,0.05) 40px),
+        repeating-linear-gradient(90deg,  transparent, transparent 39px,
+          rgba(124,58,237,0.05) 39px, rgba(124,58,237,0.05) 40px),
+        var(--bg-primary);
+    }
+
+    /* centred card */
+    .empty-card {
+      position: relative; z-index: 1;
+      width: 100%; max-width: 320px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-medium);
+      border-radius: 24px;
+      padding: 28px 24px 24px;
+      display: flex; flex-direction: column; align-items: center;
+      gap: 0;
+      box-shadow: 0 8px 48px rgba(0,0,0,0.55),
+                  0 0 0 1px rgba(124,58,237,0.12);
+    }
+
+    /* illustration */
+    .empty-illustration {
+      position: relative;
+      width: 160px; height: 160px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 20px;
+    }
+    .illus-ring {
+      position: absolute; border-radius: 50%; border: 2px solid;
+      top: 50%; left: 50%; transform: translate(-50%,-50%);
+    }
+    .illus-ring-outer {
+      width: 148px; height: 148px;
+      border-color: rgba(236,72,153,0.6);
+      box-shadow: 0 0 24px rgba(236,72,153,0.35), inset 0 0 24px rgba(236,72,153,0.15);
+      animation: illus-spin 8s linear infinite;
+    }
+    .illus-ring-mid {
+      width: 110px; height: 110px;
+      border-color: rgba(167,139,250,0.35);
+    }
+    .illus-figure {
+      font-size: 52px; z-index: 1;
+      filter: drop-shadow(0 0 14px rgba(124,58,237,0.6));
+    }
+    @keyframes illus-spin {
+      from { transform: translate(-50%,-50%) rotate(0deg);   }
+      to   { transform: translate(-50%,-50%) rotate(360deg); }
+    }
+
+    .empty-title {
+      font-size: 20px; font-weight: 800; color: var(--text-primary);
+      margin-bottom: 8px; text-align: center;
+    }
+    .empty-sub {
+      font-size: 13px; color: var(--text-secondary); line-height: 1.6;
+      text-align: center; margin-bottom: 24px;
+    }
+
+    .empty-actions { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+    .empty-btn { padding: 15px 24px; font-size: 15px; font-weight: 600; border-radius: var(--radius-full, 50px); }
+    .btn-outline {
+      background: transparent;
+      border: 1.5px solid var(--border-medium);
+      color: var(--text-primary);
+    }
+
+    /* floating action buttons */
+    .map-fabs {
+      position: absolute; right: 16px; bottom: calc(var(--nav-height, 64px) + 16px);
+      display: flex; flex-direction: column; gap: 10px; z-index: 2;
+    }
+    .fab {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: var(--bg-secondary); border: 1px solid var(--border-medium);
+      color: var(--text-primary); font-size: 18px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+      transition: all 0.2s;
+      &:active { transform: scale(0.92); }
+    }
 
     /* ── Bottom sheet ────────────────────────────────────── */
     /*
@@ -342,7 +463,9 @@ export class MapComponent implements OnInit {
   enterZone(zone: Zone, event: Event) {
     event.stopPropagation();
     this.zoneService.joinZone(zone);
-    this.router.navigate(['/app/zone', zone.id]);
+    this.router.navigate(['/app/zone-entry', zone.id], {
+      queryParams: { name: zone.name }
+    });
   }
 
   createZone() { /* open modal */ }

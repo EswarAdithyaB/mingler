@@ -31,7 +31,12 @@ const VIBE_EMOJIS: Record<string, string> = {
       <div class="screen-header">
         <button class="back-btn-ghost">←</button>
         <h3 class="header-title">Settings</h3>
-        <div style="width:36px"></div>
+        <div class="header-right-actions">
+          <button class="header-icon-btn" (click)="onRefresh()" title="Refresh">🔄</button>
+          <button class="header-icon-btn notif-btn" title="Notifications">
+            🔔<span class="notif-dot"></span>
+          </button>
+        </div>
       </div>
 
       <div class="screen-content">
@@ -190,6 +195,13 @@ const VIBE_EMOJIS: Record<string, string> = {
       width: 36px; height: 36px; border-radius: 50%; background: none;
       border: none; color: var(--text-secondary); font-size: 18px; cursor: pointer;
     }
+    .header-right-actions { display: flex; align-items: center; gap: 6px; }
+    .notif-btn { position: relative; }
+    .notif-dot {
+      position: absolute; top: 4px; right: 4px;
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--pink-accent); border: 1.5px solid var(--bg-primary);
+    }
 
     /* ── Profile card ── */
     .profile-section { padding: 16px 20px; }
@@ -337,6 +349,8 @@ export class SettingsComponent implements OnInit {
     private authService: AuthService,
     private router: Router
   ) {}
+
+  onRefresh() { window.location.reload(); }
 
   ngOnInit(): void {
     // Refresh from server in background so data stays fresh

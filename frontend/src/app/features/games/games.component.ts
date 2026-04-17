@@ -1,5 +1,6 @@
-import { Component, signal } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router, ActivatedRoute } from '@angular/router';
 import { Game } from '../../core/models';
 
 @Component({
@@ -10,9 +11,17 @@ import { Game } from '../../core/models';
     <div class="screen gradient-bg">
       <!-- Header -->
       <div class="screen-header">
-        <h3 class="header-title">Games In This Zone</h3>
-        <div class="header-right">
-          <div class="avatar avatar-sm avatar-glow">🧑‍🎤</div>
+        @if (fromZoneId()) {
+          <button class="back-btn" (click)="goBackToZone()">← Back</button>
+        } @else {
+          <div class="header-icon-btn">⊞</div>
+        }
+        <h3 class="header-title">Games in This Zone</h3>
+        <div class="header-right-actions">
+          <button class="header-icon-btn" (click)="onRefresh()" title="Refresh">🔄</button>
+          <button class="header-icon-btn notif-btn" title="Notifications">
+            🔔<span class="notif-dot"></span>
+          </button>
         </div>
       </div>
 
@@ -30,14 +39,29 @@ import { Game } from '../../core/models';
       <!-- Games List / Empty -->
       <div class="screen-content">
         @if (activeGames().length === 0) {
-          <div class="empty-state">
-            <div class="empty-icon animate-float">🕹️</div>
-            <h3>No Active Games</h3>
-            <p>Be the first to start a game and invite players in this zone</p>
-            <button class="btn btn-primary" (click)="showCreateModal.set(true)">
+          <div class="empty-games">
+            <!-- Floating Z letters -->
+            <div class="z-letter z1">Z</div>
+            <div class="z-letter z2">Z</div>
+            <div class="z-letter z3">z</div>
+            <!-- Floating dots -->
+            <div class="dot dot-pink"></div>
+            <div class="dot dot-green"></div>
+            <div class="dot dot-blue"></div>
+            <!-- Central orb -->
+            <div class="game-orb">
+              <div class="orb-ring orb-ring-1"></div>
+              <div class="orb-ring orb-ring-2"></div>
+              <div class="orb-core">
+                <span class="orb-icon">🎮</span>
+              </div>
+            </div>
+            <h3 class="empty-title">No Active Games</h3>
+            <p class="empty-sub">Be the first to start a game and invite<br>players in this zone</p>
+            <button class="btn-create-game" (click)="showCreateModal.set(true)">
               + Create First Game 🎮
             </button>
-            <p class="text-muted text-sm" style="margin-top:12px;">Refresh Zone</p>
+            <button class="refresh-link" (click)="refreshZone()">REFRESH ZONE</button>
           </div>
         } @else {
           <div class="scroll-list">
@@ -132,6 +156,17 @@ import { Game } from '../../core/models';
       background: rgba(8,8,15,0.9); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border-subtle);
     }
     .header-right { display: flex; gap: 8px; align-items: center; }
+    .header-right-actions { display: flex; align-items: center; gap: 6px; }
+    .notif-btn { position: relative; }
+    .notif-dot {
+      position: absolute; top: 4px; right: 4px;
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--pink-accent); border: 1.5px solid var(--bg-primary);
+    }
+    .back-btn {
+      background: none; border: none; color: var(--purple-light);
+      font-size: 14px; font-weight: 700; cursor: pointer; padding: 4px 2px;
+    }
 
     /* Horizontal game-type chips — fixed row, never scrolls vertically */
     .game-types-scroll {
@@ -169,6 +204,114 @@ import { Game } from '../../core/models';
       padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
       &.status-waiting { background: rgba(16,185,129,0.15); color: var(--success); }
       &.status-playing { background: rgba(245,158,11,0.15); color: var(--warning); }
+    }
+
+    /* ── Rich Empty State ──────────────────────────────────── */
+    .empty-games {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      justify-content: center; position: relative; padding: 24px 32px 40px;
+      overflow: hidden;
+    }
+
+    /* Floating Z letters */
+    .z-letter {
+      position: absolute; font-weight: 900; color: var(--purple-medium);
+      opacity: 0.5; animation: float-z 3s ease-in-out infinite;
+      font-family: serif;
+    }
+    .z1 { font-size: 28px; top: 12%; right: 22%; animation-delay: 0s; }
+    .z2 { font-size: 20px; top: 8%; right: 14%; animation-delay: 0.6s; }
+    .z3 { font-size: 14px; top: 5%; right: 8%; animation-delay: 1.2s; }
+    @keyframes float-z {
+      0%, 100% { transform: translateY(0) rotate(-10deg); opacity: 0.4; }
+      50% { transform: translateY(-12px) rotate(10deg); opacity: 0.7; }
+    }
+
+    /* Floating dots */
+    .dot {
+      position: absolute; border-radius: 50%;
+      animation: dot-float 4s ease-in-out infinite;
+    }
+    .dot-pink {
+      width: 12px; height: 12px; background: #ec4899;
+      left: 18%; top: 32%; box-shadow: 0 0 10px #ec489988;
+      animation-delay: 0s;
+    }
+    .dot-green {
+      width: 8px; height: 8px; background: #10b981;
+      left: 12%; top: 52%; box-shadow: 0 0 8px #10b98188;
+      animation-delay: 1s;
+    }
+    .dot-blue {
+      width: 10px; height: 10px; background: #818cf8;
+      right: 16%; top: 58%; box-shadow: 0 0 10px #818cf888;
+      animation-delay: 2s;
+    }
+    @keyframes dot-float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-14px); }
+    }
+
+    /* Central orb */
+    .game-orb {
+      position: relative; width: min(180px, 48vw); height: min(180px, 48vw);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 28px;
+    }
+    .orb-ring {
+      position: absolute; border-radius: 50%; border: 1.5px solid;
+      animation: pulse-ring 2.5s ease-in-out infinite;
+    }
+    .orb-ring-1 {
+      inset: 0; border-color: rgba(124,58,237,0.4);
+      animation-delay: 0s;
+    }
+    .orb-ring-2 {
+      inset: -14px; border-color: rgba(124,58,237,0.2);
+      animation-delay: 0.5s;
+    }
+    @keyframes pulse-ring {
+      0%, 100% { opacity: 0.4; transform: scale(1); }
+      50% { opacity: 0.8; transform: scale(1.04); }
+    }
+    .orb-core {
+      width: 100%; height: 100%; border-radius: 50%;
+      background: radial-gradient(circle at 40% 35%, rgba(124,58,237,0.35), rgba(8,8,15,0.95) 70%);
+      border: 1.5px solid rgba(124,58,237,0.5);
+      box-shadow: 0 0 40px rgba(124,58,237,0.3), inset 0 0 30px rgba(124,58,237,0.1);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .orb-icon {
+      font-size: min(64px, 17vw);
+      filter: drop-shadow(0 0 12px rgba(167,139,250,0.8));
+      animation: icon-pulse 2s ease-in-out infinite;
+    }
+    @keyframes icon-pulse {
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 12px rgba(167,139,250,0.7)); }
+      50% { transform: scale(1.08); filter: drop-shadow(0 0 20px rgba(167,139,250,1)); }
+    }
+
+    .empty-title {
+      font-size: 22px; font-weight: 800; color: var(--text-primary);
+      margin: 0 0 10px; text-align: center;
+    }
+    .empty-sub {
+      font-size: 13px; color: var(--text-secondary); text-align: center;
+      line-height: 1.6; margin: 0 0 28px;
+    }
+    .btn-create-game {
+      background: linear-gradient(135deg, var(--purple-primary), #5B21B6);
+      border: none; border-radius: 28px; padding: 15px 36px;
+      color: white; font-size: 15px; font-weight: 700; cursor: pointer;
+      box-shadow: 0 4px 20px var(--purple-glow); width: 100%; max-width: 320px;
+      margin-bottom: 16px; transition: transform 0.15s, box-shadow 0.15s;
+      &:active { transform: scale(0.97); }
+    }
+    .refresh-link {
+      background: none; border: none; color: var(--text-secondary);
+      font-size: 12px; font-weight: 700; letter-spacing: 1px;
+      cursor: pointer; padding: 8px; text-transform: uppercase;
+      &:hover { color: var(--text-primary); }
     }
 
     .compose-fab {
@@ -224,9 +367,10 @@ import { Game } from '../../core/models';
     .invite-actions { display: flex; gap: 8px; flex-shrink: 0; }
   `]
 })
-export class GamesComponent {
+export class GamesComponent implements OnInit {
   activeGameType = signal('all');
   showCreateModal = signal(false);
+  fromZoneId = signal<string | null>(null);
   showInvite = signal(true);
   selectedGameType = signal('ludo');
   playerCount = signal(4);
@@ -283,6 +427,11 @@ export class GamesComponent {
 
   acceptInvite() { this.showInvite.set(false); }
 
+  refreshZone() {
+    // In a real app this would re-fetch games from backend
+    console.log('Refreshing zone...');
+  }
+
   getGameIcon(type: string): string {
     const icons: Record<string, string> = {
       'ludo': '🎲', 'truth-or-dare': '🎭', 'quiz': '🧠', 'word-chain': '🔤'
@@ -295,5 +444,23 @@ export class GamesComponent {
       'ludo': 'Ludo', 'truth-or-dare': 'Truth or Dare', 'quiz': 'Zone Quiz', 'word-chain': 'Word Chain'
     };
     return names[type] || type;
+  }
+
+  constructor(private router: Router, private route: ActivatedRoute) {}
+
+  onRefresh() { window.location.reload(); }
+
+  ngOnInit() {
+    const fromZone = this.route.snapshot.queryParamMap.get('fromZone');
+    if (!fromZone) {
+      // Opened from shell nav — go to map instead
+      this.router.navigate(['/app/map']);
+      return;
+    }
+    this.fromZoneId.set(fromZone);
+  }
+
+  goBackToZone() {
+    this.router.navigate(['/app/zone', this.fromZoneId()]);
   }
 }

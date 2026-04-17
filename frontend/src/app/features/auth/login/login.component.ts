@@ -170,7 +170,7 @@ export class LoginComponent {
     this.loading.set(true);
     try {
       await this.authService.login(this.username.trim(), this.password);
-      this.router.navigate(['/app/map']);
+      this.router.navigate(['/onboarding']);
     } catch (err: unknown) {
       const httpErr = err as HttpErrorResponse;
       this.error.set(

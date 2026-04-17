@@ -14,7 +14,10 @@ import { Connection } from '../../core/models';
         <h3 class="header-title">My Connections</h3>
         <div class="header-right">
           <button class="header-icon-btn">🔍</button>
-          <button class="header-icon-btn" (click)="showNearby.set(!showNearby())">👥</button>
+          <button class="header-icon-btn" (click)="onRefresh()" title="Refresh">🔄</button>
+          <button class="header-icon-btn notif-btn" title="Notifications">
+            🔔<span class="notif-dot"></span>
+          </button>
         </div>
       </div>
 
@@ -98,7 +101,13 @@ import { Connection } from '../../core/models';
       padding-top: calc(env(safe-area-inset-top, 0px) + 16px);
       background: rgba(8,8,15,0.9); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border-subtle);
     }
-    .header-right { display: flex; gap: 8px; }
+    .header-right { display: flex; gap: 6px; align-items: center; }
+    .notif-btn { position: relative; }
+    .notif-dot {
+      position: absolute; top: 4px; right: 4px;
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--pink-accent); border: 1.5px solid var(--bg-primary);
+    }
 
     /* Sticky tabs row — does not scroll vertically */
     .tabs-row {
@@ -140,6 +149,8 @@ import { Connection } from '../../core/models';
 export class ConnectionsComponent {
   activeTab = signal('connections');
   showNearby = signal(false);
+
+  onRefresh() { window.location.reload(); }
 
   connections = signal<Connection[]>([
     {

@@ -22,6 +22,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/register/register.component').then(m => m.RegisterComponent)
   },
   {
+    path: 'onboarding',
+    loadComponent: () => import('./features/auth/onboarding/onboarding.component').then(m => m.OnboardingComponent)
+  },
+  {
     path: 'app',
     canActivate: [authGuard],
     loadComponent: () => import('./features/shell/shell.component').then(m => m.ShellComponent),
@@ -34,6 +38,10 @@ export const routes: Routes = [
       {
         path: 'zone/:id',
         loadComponent: () => import('./features/zone/zone.component').then(m => m.ZoneComponent)
+      },
+      {
+        path: 'zone-entry/:id',
+        loadComponent: () => import('./features/zone-entry/zone-entry.component').then(m => m.ZoneEntryComponent)
       },
       {
         path: 'vibes',

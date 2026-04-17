@@ -242,7 +242,7 @@ export class RegisterComponent {
         this.password,
         this.selectedVibe()
       );
-      this.router.navigate(['/app/map']);
+      this.router.navigate(['/onboarding']);
     } catch (err: unknown) {
       const httpErr = err as HttpErrorResponse;
       this.error.set(
