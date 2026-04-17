@@ -1,0 +1,290 @@
+import { Component, OnInit, OnDestroy, signal } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { CommonModule } from '@angular/common';
+
+const STEPS = [
+  'Syncing your avatar...',
+  'Scanning zone frequencies...',
+  'Connecting to nearby strangers...',
+  'Almost there...'
+];
+
+@Component({
+  selector: 'app-zone-entry',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
+    <div class="entry-screen">
+
+      <!-- ── Outer atmospheric glow rings ───────────────────── -->
+      <div class="atmos-rings">
+        <div class="atmos atmos-1"></div>
+        <div class="atmos atmos-2"></div>
+        <div class="atmos atmos-3"></div>
+      </div>
+
+      <!-- ── Main radar orb ─────────────────────────────────── -->
+      <div class="orb-wrap">
+        <!-- silent outer rings -->
+        <div class="silent-ring sr-1"></div>
+        <div class="silent-ring sr-2"></div>
+
+        <!-- spinning arcs -->
+        <div class="arc-ring arc-teal"></div>
+        <div class="arc-ring arc-pink"></div>
+
+        <!-- inner scan circle -->
+        <div class="inner-scan">
+          <div class="scan-line"></div>
+          <!-- crosshair marks -->
+          <div class="crosshair ch-top"></div>
+          <div class="crosshair ch-bottom"></div>
+          <div class="crosshair ch-left"></div>
+          <div class="crosshair ch-right"></div>
+          <!-- pulse core -->
+          <div class="pulse-core"></div>
+        </div>
+      </div>
+
+      <!-- ── Text block ─────────────────────────────────────── -->
+      <div class="text-block">
+        <h1 class="zone-name">Entering {{ zoneName }}...</h1>
+        <p class="step-label">{{ currentStep() }}</p>
+      </div>
+
+      <!-- ── Progress bar ───────────────────────────────────── -->
+      <div class="progress-track">
+        <div class="progress-fill" [style.width]="progress() + '%'"></div>
+      </div>
+
+      <!-- ── Avatar preview ────────────────────────────────── -->
+      <div class="avatar-preview" [class.visible]="progress() > 60">
+        <div class="avatar-glow-ring"></div>
+        <div class="avatar-img">{{ avatarEmoji }}</div>
+      </div>
+
+    </div>
+  `,
+  styles: [`
+    /* ── Fills the shell's flex slot exactly like every other screen ── */
+    :host {
+      display: flex; flex-direction: column;
+      flex: 1; min-height: 0; overflow: hidden;
+    }
+
+    .entry-screen {
+      flex: 1; min-height: 0; position: relative; overflow: hidden;
+      background: radial-gradient(ellipse at 50% 38%, rgba(60,20,120,0.6) 0%, rgba(8,8,20,1) 68%);
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; padding: 0 24px 24px;
+    }
+
+    /* ── Atmospheric background rings ────────────────────── */
+    .atmos-rings { position: absolute; inset: 0; pointer-events: none; }
+    .atmos {
+      position: absolute; left: 50%; top: 38%;
+      border-radius: 50%; border: 1px solid;
+      transform: translate(-50%, -50%);
+      animation: atmos-breathe 4s ease-in-out infinite;
+    }
+    .atmos-1 {
+      width: min(280px, 76vw); height: min(280px, 76vw);
+      border-color: rgba(99,60,200,0.22);
+      animation-delay: 0s;
+    }
+    .atmos-2 {
+      width: min(380px, 102vw); height: min(380px, 102vw);
+      border-color: rgba(99,60,200,0.12);
+      animation-delay: 0.8s;
+    }
+    .atmos-3 {
+      width: min(480px, 128vw); height: min(480px, 128vw);
+      border-color: rgba(99,60,200,0.06);
+      animation-delay: 1.6s;
+    }
+    @keyframes atmos-breathe {
+      0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+      50%       { opacity: 1;   transform: translate(-50%, -50%) scale(1.04); }
+    }
+
+    /* ── Orb wrapper ──────────────────────────────────────── */
+    .orb-wrap {
+      position: relative;
+      width: min(220px, 58vw); height: min(220px, 58vw);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-bottom: 8px;
+    }
+
+    /* Silent outer rings */
+    .silent-ring {
+      position: absolute; border-radius: 50%; border: 1.5px solid;
+      animation: pulse-ring 3s ease-in-out infinite;
+    }
+    .sr-1 {
+      inset: -18px; border-color: rgba(124,58,237,0.25);
+      animation-delay: 0s;
+    }
+    .sr-2 {
+      inset: -36px; border-color: rgba(124,58,237,0.12);
+      animation-delay: 0.6s;
+    }
+    @keyframes pulse-ring {
+      0%,100% { opacity: 0.4; transform: scale(1); }
+      50%      { opacity: 1;   transform: scale(1.03); }
+    }
+
+    /* Spinning arc rings */
+    .arc-ring {
+      position: absolute; inset: 0; border-radius: 50%;
+      border: 3px solid transparent;
+    }
+    .arc-teal {
+      border-top-color: #22d3ee;
+      border-right-color: rgba(34,211,238,0.3);
+      box-shadow: 0 0 20px rgba(34,211,238,0.4);
+      animation: spin-cw 2.4s linear infinite;
+    }
+    .arc-pink {
+      inset: 10px; border-bottom-color: #ec4899;
+      border-left-color: rgba(236,72,153,0.3);
+      box-shadow: 0 0 20px rgba(236,72,153,0.35);
+      animation: spin-ccw 1.8s linear infinite;
+    }
+    @keyframes spin-cw  { to { transform: rotate(360deg); } }
+    @keyframes spin-ccw { to { transform: rotate(-360deg); } }
+
+    /* Inner scan circle */
+    .inner-scan {
+      position: relative; width: 58%; height: 58%;
+      border-radius: 50%;
+      background: radial-gradient(circle at 42% 38%,
+        rgba(124,58,237,0.5), rgba(8,8,30,0.95) 70%);
+      border: 2px solid rgba(124,58,237,0.6);
+      box-shadow: 0 0 30px rgba(124,58,237,0.4),
+                  inset 0 0 20px rgba(124,58,237,0.15);
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+    /* Rotating scan line */
+    .scan-line {
+      position: absolute; width: 100%; height: 100%;
+      background: conic-gradient(from 0deg,
+        rgba(34,211,238,0) 0%,
+        rgba(34,211,238,0.4) 15%,
+        rgba(34,211,238,0) 25%);
+      animation: spin-cw 2s linear infinite;
+    }
+    /* Crosshair tick marks */
+    .crosshair {
+      position: absolute; background: rgba(124,58,237,0.7);
+    }
+    .ch-top, .ch-bottom { width: 1.5px; height: 10px; left: 50%; transform: translateX(-50%); }
+    .ch-left, .ch-right { height: 1.5px; width: 10px; top: 50%; transform: translateY(-50%); }
+    .ch-top    { top: 4px; }
+    .ch-bottom { bottom: 4px; }
+    .ch-left   { left: 4px; }
+    .ch-right  { right: 4px; }
+    /* Pulsing centre dot */
+    .pulse-core {
+      width: 18px; height: 18px; border-radius: 50%;
+      background: radial-gradient(circle, #c4b5fd, #7c3aed);
+      box-shadow: 0 0 16px rgba(167,139,250,0.9);
+      animation: core-pulse 1.2s ease-in-out infinite;
+      z-index: 2;
+    }
+    @keyframes core-pulse {
+      0%,100% { transform: scale(1);    box-shadow: 0 0 16px rgba(167,139,250,0.8); }
+      50%      { transform: scale(1.35); box-shadow: 0 0 28px rgba(167,139,250,1); }
+    }
+
+    /* ── Text block ──────────────────────────────────────── */
+    .text-block {
+      margin-top: 28px; text-align: center; padding: 0 24px; width: 100%;
+    }
+    .zone-name {
+      font-size: clamp(20px, 5.5vw, 26px); font-weight: 900;
+      color: #ffffff; margin: 0 0 6px; letter-spacing: -0.3px;
+      text-shadow: 0 0 24px rgba(167,139,250,0.4);
+    }
+    .step-label {
+      font-size: 13px; color: #a78bfa; margin: 0;
+      min-height: 18px; transition: opacity 0.4s;
+    }
+
+    /* ── Progress bar ────────────────────────────────────── */
+    .progress-track {
+      margin-top: 20px; width: min(260px, 72vw);
+      height: 5px; border-radius: 10px;
+      background: rgba(124,58,237,0.2); overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%; border-radius: 10px;
+      background: linear-gradient(90deg, #7c3aed, #c4b5fd);
+      box-shadow: 0 0 10px rgba(167,139,250,0.7);
+      transition: width 0.35s ease-out;
+    }
+
+    /* ── Avatar preview ──────────────────────────────────── */
+    .avatar-preview {
+      margin-top: 24px; position: relative;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; transform: translateY(16px) scale(0.85);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+      &.visible { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .avatar-glow-ring {
+      position: absolute; inset: -10px; border-radius: 16px;
+      border: 1.5px solid rgba(124,58,237,0.4);
+      box-shadow: 0 0 20px rgba(124,58,237,0.25);
+      animation: pulse-ring 2s ease-in-out infinite;
+    }
+    .avatar-img {
+      width: min(80px, 21vw); height: min(80px, 21vw);
+      border-radius: 12px;
+      background: linear-gradient(145deg, rgba(60,20,120,0.8), rgba(8,8,30,0.95));
+      border: 1.5px solid rgba(124,58,237,0.5);
+      display: flex; align-items: center; justify-content: center;
+      font-size: min(42px, 11vw);
+    }
+  `]
+})
+export class ZoneEntryComponent implements OnInit, OnDestroy {
+  zoneName = 'Neon Arena';
+  avatarEmoji = '🧑‍🎤';
+
+  progress  = signal(0);
+  currentStep = signal(STEPS[0]);
+
+  private timers: ReturnType<typeof setTimeout>[] = [];
+
+  constructor(private route: ActivatedRoute, private router: Router) {}
+
+  ngOnInit() {
+    // Read zone name from route params or query
+    const name = this.route.snapshot.queryParamMap.get('name');
+    if (name) this.zoneName = decodeURIComponent(name);
+
+    this.runSequence();
+  }
+
+  ngOnDestroy() { this.timers.forEach(t => clearTimeout(t)); }
+
+  private runSequence() {
+    const schedule = (fn: () => void, ms: number) => {
+      this.timers.push(setTimeout(fn, ms));
+    };
+
+    // Step through progress & labels
+    schedule(() => { this.progress.set(20); this.currentStep.set(STEPS[0]); },  300);
+    schedule(() => { this.progress.set(45); this.currentStep.set(STEPS[1]); }, 1100);
+    schedule(() => { this.progress.set(70); this.currentStep.set(STEPS[2]); }, 1900);
+    schedule(() => { this.progress.set(90); this.currentStep.set(STEPS[3]); }, 2600);
+    schedule(() => { this.progress.set(100); },                                3100);
+
+    // Navigate away once 100% is reached
+    schedule(() => {
+      const zoneId = this.route.snapshot.paramMap.get('id') || 'zone_001';
+      this.router.navigate(['/app/zone', zoneId]);
+    }, 3600);
+  }
+}
