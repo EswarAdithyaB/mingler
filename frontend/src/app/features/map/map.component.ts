@@ -463,7 +463,7 @@ export class MapComponent implements OnInit {
   enterZone(zone: Zone, event: Event) {
     event.stopPropagation();
     this.zoneService.joinZone(zone);
-    this.router.navigate(['/app/zone-entry', zone.id], {
+    this.router.navigate(['/app/vibe-check', zone.id], {
       queryParams: { name: zone.name }
     });
   }

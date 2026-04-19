@@ -44,6 +44,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/zone-entry/zone-entry.component').then(m => m.ZoneEntryComponent)
       },
       {
+        path: 'vibe-check/:id',
+        loadComponent: () => import('./features/vibe-check/vibe-check.component').then(m => m.VibeCheckComponent)
+      },
+      {
         path: 'vibes',
         loadComponent: () => import('./features/vibe-feed/vibe-feed.component').then(m => m.VibeFeedComponent)
       },
