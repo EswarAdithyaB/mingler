@@ -23,7 +23,7 @@ import { filter } from 'rxjs/operators';
                     [attr.fill-opacity]="mapLink.isActive ? '1' : '0.3'"/>
                 </svg>
               </span>
-              <span class="nav-label">Map</span>
+              <span class="nav-label">MAP</span>
             </button>
 
             <!-- Games -->
@@ -35,7 +35,7 @@ import { filter } from 'rxjs/operators';
                     [attr.fill-opacity]="gamesLink.isActive ? '1' : '0.4'"/>
                 </svg>
               </span>
-              <span class="nav-label">Games</span>
+              <span class="nav-label">GAMES</span>
             </button>
 
             <!-- Vibes -->
@@ -47,7 +47,7 @@ import { filter } from 'rxjs/operators';
                     [attr.fill-opacity]="vibesLink.isActive ? '1' : '0.3'"/>
                 </svg>
               </span>
-              <span class="nav-label">Vibes</span>
+              <span class="nav-label">VIBE</span>
             </button>
 
             <!-- Message -->
@@ -59,7 +59,7 @@ import { filter } from 'rxjs/operators';
                     [attr.fill-opacity]="msgLink.isActive ? '1' : '0.3'"/>
                 </svg>
               </span>
-              <span class="nav-label">Message</span>
+              <span class="nav-label">CHAT</span>
             </button>
 
             <!-- Profile -->
@@ -71,7 +71,7 @@ import { filter } from 'rxjs/operators';
                     [attr.fill-opacity]="profileLink.isActive ? '1' : '0.3'"/>
                 </svg>
               </span>
-              <span class="nav-label">Profile</span>
+              <span class="nav-label">PROFILE</span>
             </button>
 
           </div>
