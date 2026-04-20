@@ -66,23 +66,8 @@ const STEPS = ['Syncing your avatar...', 'Scanning zone frequencies...', 'Connec
         <div class="lounge-world"
           [style.transform]="'scale(' + zoomLevel() + ')'">
 
-          <!-- ── Isometric room background ── -->
-          <div class="iso-room">
-            <div class="iso-ceiling">
-              <div class="ceiling-spot cs1"></div>
-              <div class="ceiling-spot cs2"></div>
-              <div class="ceiling-spot cs3"></div>
-            </div>
-            <div class="iso-wall-left"></div>
-            <div class="iso-wall-right">
-              <div class="neon-strip"></div>
-            </div>
-            <div class="iso-floor"><div class="floor-grid"></div></div>
-            <div class="iso-pillar p1"></div>
-            <div class="iso-pillar p2"></div>
-            <div class="glow-pool gp1"></div>
-            <div class="glow-pool gp2"></div>
-          </div>
+          <!-- ── Map background (inside world, zooms with avatars) ── -->
+          <img class="map-bg" src="assets/background_map.svg" alt="" aria-hidden="true"/>
 
           <!-- ── Avatar nodes ── -->
           @for (u of loungeUsers(); track u.id) {
@@ -92,26 +77,18 @@ const STEPS = ['Syncing your avatar...', 'Scanning zone frequencies...', 'Connec
               [style.top]="u.wy + '%'"
               (click)="openProfile(u)">
 
-              @if (u.activityEmoji) {
-                <div class="activity-float">{{ u.activityEmoji }}</div>
-              }
+              <!-- Label pill above avatar -->
+              <div class="activity-float">
+                @if (u.activityEmoji) { <span>{{ u.activityEmoji }}</span> }
+                <span>{{ u.name }}</span>
+              </div>
 
-              <div class="avatar-frame"
-                [class.me-frame]="u.isMe"
+              <div class="avatar-frame" [class.me-frame]="u.isMe"
                 [style.border-color]="u.ringColor"
-                [style.box-shadow]="'0 0 20px ' + u.ringColor + '99, 0 0 6px ' + u.ringColor + '55'">
+                [style.box-shadow]="'0 0 0 4px ' + u.ringColor + '33, 0 0 18px ' + u.ringColor + '88, 0 0 36px ' + u.ringColor + '44'">
                 <div class="avatar-inner">{{ u.avatarEmoji }}</div>
               </div>
 
-              @if (u.nameStyle === 'pill') {
-                <div class="username-pill">{{ u.name }}</div>
-              } @else {
-                <div class="username-text" [style.color]="u.nameColor">{{ u.name }}</div>
-              }
-
-              @if (u.isMe) {
-                <div class="you-sparkle">✦ ✦</div>
-              }
             </div>
           }
         </div><!-- /lounge-world -->
@@ -312,69 +289,14 @@ const STEPS = ['Syncing your avatar...', 'Scanning zone frequencies...', 'Connec
       top: -100%; left: -100%;
       transform-origin: 50% 50%;
       transition: transform 0.4s cubic-bezier(0.34, 1.2, 0.64, 1);
+      z-index: 1;
     }
 
-    /* ── ISO room (fills entire world) ─────────────────── */
-    .iso-room { position: absolute; inset: 0; pointer-events: none; }
-
-    .iso-ceiling {
-      position: absolute; top: 0; left: 0; right: 0; height: 38%;
-      background: linear-gradient(180deg,
-        rgba(14,14,30,1) 0%, rgba(18,15,38,0.85) 60%, rgba(9,9,18,0) 100%);
-      &::before {
-        content: ''; position: absolute; inset: 0;
-        background:
-          repeating-linear-gradient(90deg,rgba(255,255,255,0.025) 0,rgba(255,255,255,0.025) 1px,transparent 1px,transparent 60px),
-          repeating-linear-gradient(0deg,rgba(255,255,255,0.025) 0,rgba(255,255,255,0.025) 1px,transparent 1px,transparent 60px);
-        transform: perspective(300px) rotateX(-30deg);
-        transform-origin: top center; opacity: 0.5;
-      }
+    /* ── Map background — fills the 300×300% world, zooms with avatars ── */
+    .map-bg {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      object-fit: cover; pointer-events: none; z-index: 0;
     }
-    .ceiling-spot {
-      position: absolute; border-radius: 50%;
-      background: radial-gradient(ellipse at 50% 0%,rgba(120,80,220,0.22) 0%,rgba(120,80,220,0.05) 50%,transparent 70%);
-      animation: spot-breathe 4s ease-in-out infinite;
-    }
-    .cs1{width:220px;height:320px;top:0;left:20%;animation-delay:0s}
-    .cs2{width:160px;height:240px;top:0;left:50%;transform:translateX(-50%);animation-delay:1.2s}
-    .cs3{width:190px;height:280px;top:0;right:15%;animation-delay:0.6s}
-    @keyframes spot-breathe{0%,100%{opacity:0.6}50%{opacity:1}}
-
-    .iso-wall-left {
-      position: absolute; top:0; left:0; bottom:0; width:8%;
-      background: linear-gradient(90deg,rgba(20,18,40,0.95) 0%,transparent 100%);
-    }
-    .iso-wall-right {
-      position: absolute; top:0; right:0; bottom:0; width:8%;
-      background: linear-gradient(270deg,rgba(20,18,40,0.9) 0%,transparent 100%);
-    }
-    .neon-strip {
-      position:absolute;top:20%;left:0;width:4px;height:50%;
-      background:linear-gradient(180deg,transparent,#ec4899 20%,#c084fc 50%,#ec4899 80%,transparent);
-      box-shadow:0 0 12px #ec4899,0 0 24px rgba(236,72,153,0.4); border-radius:2px;
-    }
-    .iso-floor {
-      position:absolute;bottom:0;left:0;right:0;height:45%;
-      background:linear-gradient(0deg,rgba(10,8,22,0.98) 0%,rgba(14,12,30,0.5) 60%,transparent 100%);
-      overflow:hidden;
-    }
-    .floor-grid {
-      position:absolute;inset:0;
-      background:
-        repeating-linear-gradient(90deg,rgba(124,58,237,0.08) 0,rgba(124,58,237,0.08) 1px,transparent 1px,transparent 44px),
-        repeating-linear-gradient(0deg,rgba(124,58,237,0.06) 0,rgba(124,58,237,0.06) 1px,transparent 1px,transparent 44px);
-      transform:perspective(280px) rotateX(45deg);
-      transform-origin:bottom center;
-    }
-    .iso-pillar {
-      position:absolute;bottom:28%;width:22px;
-      background:linear-gradient(180deg,rgba(40,35,70,0.9),rgba(22,20,45,0.8));
-      border:1px solid rgba(124,58,237,0.15); border-radius:3px;
-    }
-    .p1{left:38%;height:28%} .p2{left:54%;height:24%}
-    .glow-pool{position:absolute;border-radius:50%;filter:blur(40px);pointer-events:none;}
-    .gp1{width:240px;height:90px;bottom:10%;left:22%;background:rgba(124,58,237,0.18);}
-    .gp2{width:180px;height:70px;bottom:8%;right:12%;background:rgba(6,182,212,0.12);}
 
     /* ── Avatar nodes ───────────────────────────────────── */
     .avatar-node {
@@ -393,27 +315,39 @@ const STEPS = ['Syncing your avatar...', 'Scanning zone frequencies...', 'Connec
     .size-sm .avatar-inner  { font-size: min(22px, 5.5vw); }
 
     .activity-float {
-      font-size: min(20px, 5vw); margin-bottom: -2px;
-      animation: float-bob 2.5s ease-in-out infinite;
-      filter: drop-shadow(0 0 4px rgba(255,200,0,0.6));
+      font-size: min(13px, 3vw); font-weight: 700; letter-spacing: 0.5px;
+      color: white; white-space: nowrap;
+      background: rgba(20,16,40,0.82);
+      border: 1px solid rgba(139,92,246,0.45);
+      border-radius: 20px; padding: 3px 10px;
+      backdrop-filter: blur(6px);
+      margin-bottom: 4px;
     }
-    @keyframes float-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
 
     .avatar-frame {
-      border-radius: 50%; border: 2.5px solid; overflow: hidden;
+      border-radius: 50%;
+      border: 3px solid #7c3aed;
+      overflow: hidden;
       display: flex; align-items: center; justify-content: center;
-      background: radial-gradient(circle at 38% 36%,rgba(80,50,120,0.5),rgba(9,9,18,0.95) 75%);
+      background: radial-gradient(circle at 38% 36%, rgba(60,40,100,0.7), rgba(9,9,18,0.98) 80%);
+      box-shadow:
+        0 0 0 4px rgba(124,58,237,0.25),
+        0 0 18px rgba(124,58,237,0.55),
+        0 0 36px rgba(124,58,237,0.25);
       animation: avatar-appear 0.6s ease both;
     }
     .me-frame {
-      border-width: 3px !important;
-      box-shadow: 0 0 0 4px rgba(167,139,250,0.2), 0 0 24px rgba(167,139,250,0.5) !important;
+      border-color: #a78bfa !important;
+      box-shadow:
+        0 0 0 5px rgba(167,139,250,0.3),
+        0 0 22px rgba(167,139,250,0.7),
+        0 0 44px rgba(167,139,250,0.3) !important;
     }
     @keyframes avatar-appear{from{opacity:0;transform:scale(0.6)}to{opacity:1;transform:scale(1)}}
     .avatar-inner { line-height: 1; user-select: none; }
 
     .username-pill {
-      background: rgba(30,25,55,0.88); border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(20,16,40,0.82); border: 1px solid rgba(139,92,246,0.45);
       border-radius: 20px; padding: 4px 12px;
       font-size: min(11px, 2.8vw); font-weight: 700; color: white;
       white-space: nowrap; backdrop-filter: blur(6px);
@@ -421,7 +355,8 @@ const STEPS = ['Syncing your avatar...', 'Scanning zone frequencies...', 'Connec
     .username-text {
       font-size: min(10px, 2.5vw); font-weight: 700;
       letter-spacing: 0.5px; white-space: nowrap;
-      text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+      color: rgba(255,255,255,0.9);
+      text-shadow: 0 1px 6px rgba(0,0,0,0.95);
     }
     .you-sparkle {
       font-size: 10px; color: #facc15; letter-spacing: 4px;
