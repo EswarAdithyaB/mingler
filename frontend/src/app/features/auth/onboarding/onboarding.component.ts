@@ -403,6 +403,7 @@ import { CommonModule } from '@angular/common';
       max-height: 100%;
       overflow: visible;
       position: relative;
+      margin-top: -150px;
       z-index: 1;
       filter: drop-shadow(0 0 40px rgba(116,89,247,0.3));
     }
