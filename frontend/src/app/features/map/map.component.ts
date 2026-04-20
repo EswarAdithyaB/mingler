@@ -100,42 +100,75 @@ import { Zone } from '../../core/models';
 
         <!-- ── Bottom Sheet (absolutely overlays map) ──────── -->
         @if (!loading() && zones().length > 0) {
-          <div class="zone-sheet" [class.expanded]="panelExpanded()">
+          <div class="zone-sheet" [class.expanded]="panelExpanded()"
+            (touchstart)="onTouchStart($event)"
+            (touchend)="onTouchEnd($event)">
 
-            <!-- Drag handle — tap to toggle -->
+            <!-- Drag handle -->
             <div class="sheet-handle-row" (click)="togglePanel()">
               <div class="panel-handle"></div>
             </div>
 
-            <!-- Sheet header always visible when collapsed -->
-            <div class="panel-header" (click)="togglePanel()">
+            <!-- Sheet header -->
+            <div class="panel-header">
               <div class="panel-title-row">
-                <h4>Zones nearby</h4>
-                <span class="badge badge-purple">{{ zones().length }} active</span>
+                <span class="live-pill">LIVE DISCOVERIES</span>
               </div>
-              <span class="panel-chevron" [class.up]="panelExpanded()">›</span>
+              <div class="panel-heading-row">
+                <h4 class="panel-heading">Nearby Zones</h4>
+                <button class="all-btn">All →</button>
+              </div>
             </div>
 
-            <!-- Scrollable list — only accessible when expanded -->
+            <!-- Horizontal scrollable cards -->
             <div class="zone-list-scroll">
               <div class="zone-list">
                 @for (zone of zones(); track zone.id) {
-                  <div class="zone-card"
-                    [class.selected]="selectedZone()?.id === zone.id"
+                  <div class="zone-card" [class.selected]="selectedZone()?.id === zone.id"
+                    [id]="'zone-card-' + zone.id"
                     (click)="selectZone(zone)">
-                    <div class="zone-card-emoji">{{ zone.coverEmoji }}</div>
-                    <div class="zone-card-info">
-                      <div class="zone-card-name">{{ zone.name }}</div>
-                      <div class="zone-card-meta">
-                        <span>👥 {{ zone.activeUsers }} vibing</span>
-                        <span>📍 ~{{ getDistance(zone) }}m</span>
+
+                    <!-- Top row: name + emoji badge -->
+                    <div class="zc-top">
+                      <div class="zc-info">
+                        <div class="zc-name">{{ zone.name }}</div>
+                        <div class="zc-distance">
+                          <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                            <circle cx="5" cy="5" r="4" fill="#22C55E"/>
+                            <circle cx="5" cy="5" r="2" fill="white"/>
+                          </svg>
+                          0.{{ getDistance(zone) }} miles away
+                        </div>
                       </div>
+                      <div class="zc-emoji-badge">{{ zone.coverEmoji }}</div>
                     </div>
-                    <button class="btn btn-primary btn-sm"
-                      (click)="enterZone(zone, $event)">Enter →</button>
+
+                    <!-- Avatar row -->
+                    <div class="zc-avatars">
+                      <div class="avatar-stack">
+                        <span class="av">🧑</span>
+                        <span class="av">👩</span>
+                        <span class="av av-count">+{{ zone.activeUsers }}</span>
+                      </div>
+                      <span class="active-dot">
+                        <span class="dot-green"></span> Active now
+                      </span>
+                    </div>
+
+                    <!-- Tags -->
+                    <div class="zc-tags">
+                      @for (tag of getZoneTags(zone); track tag) {
+                        <span class="zc-tag">{{ tag }}</span>
+                      }
+                    </div>
+
+                    <!-- Enter button -->
+                    <button class="enter-btn" (click)="enterZone(zone, $event)">
+                      ENTER ZONE
+                    </button>
+
                   </div>
                 }
-                <!-- bottom padding clears the nav bar -->
                 <div class="list-end-spacer"></div>
               </div>
             </div>
@@ -352,75 +385,173 @@ import { Zone } from '../../core/models';
     }
 
     /* ── Bottom sheet ────────────────────────────────────── */
-    /*
-     * Absolutely positioned at the bottom of .map-area.
-     * Collapsed → translateY(calc(100% - 80px)) — only handle+header peeks out.
-     * Expanded  → translateY(0) — full sheet visible, capped at 56% of map height.
-     */
     .zone-sheet {
       position: absolute; bottom: 0; left: 0; right: 0; z-index: 20;
-      max-height: 56%;
+      max-height: 62%;
       display: flex; flex-direction: column;
-      background: var(--bg-secondary);
-      border-radius: 22px 22px 0 0;
-      border-top: 1px solid var(--border-medium);
-      box-shadow: 0 -8px 40px rgba(0,0,0,0.5);
-      transform: translateY(calc(100% - 80px));
+      background: #0E0E1E;
+      border-radius: 28px 28px 0 0;
+      border-top: 1px solid rgba(255,255,255,0.07);
+      box-shadow: 0 -8px 40px rgba(0,0,0,0.6);
+      transform: translateY(calc(100% - 88px));
       transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1);
       &.expanded { transform: translateY(0); }
     }
 
     .sheet-handle-row {
-      flex-shrink: 0; padding: 10px 0 2px; cursor: pointer;
+      flex-shrink: 0; padding: 10px 0 4px; cursor: pointer;
     }
     .panel-handle {
       width: 36px; height: 4px; border-radius: 2px;
-      background: var(--border-medium); margin: 0 auto;
+      background: rgba(255,255,255,0.15); margin: 0 auto;
     }
 
     .panel-header {
       flex-shrink: 0;
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 8px 20px 12px; cursor: pointer;
+      padding: 0 20px 12px;
     }
     .panel-title-row {
-      display: flex; align-items: center; gap: 10px;
-      h4 { font-size: 15px; font-weight: 700; }
+      margin-bottom: 6px;
     }
-    .panel-chevron {
-      font-size: 22px; color: var(--text-secondary); line-height: 1;
-      transform: rotate(90deg);
-      transition: transform 0.3s ease;
-      &.up { transform: rotate(270deg); }
+    .live-pill {
+      font-size: 10px; font-weight: 700; letter-spacing: 2px;
+      color: #7B61FF;
+      border: 1px solid rgba(123,97,255,0.3);
+      border-radius: 9999px;
+      padding: 3px 10px;
+      display: inline-block;
+    }
+    .panel-heading-row {
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .panel-heading {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 24px; font-weight: 800;
+      color: #ffffff; margin: 0;
+    }
+    .all-btn {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 9999px;
+      color: rgba(255,255,255,0.7);
+      font-size: 12px; font-weight: 600;
+      padding: 5px 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      &:active { background: rgba(123,97,255,0.2); }
     }
 
-    /* Scrollable list inside the sheet */
+    /* Horizontal scroll */
     .zone-list-scroll {
       flex: 1; min-height: 0;
-      overflow-y: auto; overflow-x: hidden;
+      overflow-x: auto; overflow-y: hidden;
       -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
       scrollbar-width: none;
       &::-webkit-scrollbar { display: none; }
     }
     .zone-list {
-      display: flex; flex-direction: column; gap: 10px; padding: 4px 16px 0;
+      display: flex; flex-direction: row;
+      gap: 14px;
+      padding: 4px 20px 100px;
+      width: max-content;
     }
     .list-end-spacer {
-      height: calc(var(--nav-height, 64px) + 12px);
-      flex-shrink: 0;
+      width: 4px; flex-shrink: 0;
     }
 
+    /* ── Zone card ──────────────────────────────────────── */
     .zone-card {
-      display: flex; align-items: center; gap: 12px; background: var(--bg-card);
-      border: 1px solid var(--border-subtle); border-radius: var(--radius-lg);
-      padding: 14px; cursor: pointer; transition: all 0.2s;
-      &.selected { border-color: var(--purple-medium); background: rgba(124,58,237,0.1); }
+      width: 230px;
+      flex-shrink: 0;
+      background: #13132A;
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 24px;
+      padding: 18px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex; flex-direction: column; gap: 12px;
+      &.selected { border-color: rgba(123,97,255,0.5); background: #16163A; }
+      &:active { transform: scale(0.98); }
     }
-    .zone-card-emoji { font-size: 28px; flex-shrink: 0; }
-    .zone-card-info  { flex: 1; }
-    .zone-card-name  { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
-    .zone-card-meta  { display: flex; gap: 10px; font-size: 11px; color: var(--text-secondary); }
+
+    .zc-top {
+      display: flex; align-items: flex-start; justify-content: space-between;
+    }
+    .zc-info { flex: 1; }
+    .zc-name {
+      font-size: 17px; font-weight: 800; color: #ffffff;
+      margin-bottom: 4px; line-height: 1.2;
+    }
+    .zc-distance {
+      display: flex; align-items: center; gap: 4px;
+      font-size: 11px; color: rgba(255,255,255,0.45);
+    }
+    .zc-emoji-badge {
+      width: 40px; height: 40px;
+      background: rgba(123,97,255,0.2);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; flex-shrink: 0;
+    }
+
+    .zc-avatars {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .avatar-stack {
+      display: flex; align-items: center;
+    }
+    .av {
+      width: 24px; height: 24px; border-radius: 50%;
+      background: #1E1E3A; border: 1.5px solid #0E0E1E;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; margin-left: -6px;
+      &:first-child { margin-left: 0; }
+    }
+    .av-count {
+      font-size: 9px; font-weight: 700;
+      color: #ffffff; background: #7B61FF;
+    }
+    .active-dot {
+      display: flex; align-items: center; gap: 4px;
+      font-size: 11px; color: rgba(255,255,255,0.5);
+    }
+    .dot-green {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #22C55E;
+      box-shadow: 0 0 6px rgba(34,197,94,0.6);
+      display: inline-block;
+    }
+
+    .zc-tags {
+      display: flex; gap: 6px; flex-wrap: wrap;
+    }
+    .zc-tag {
+      font-size: 10px; font-weight: 600;
+      color: rgba(255,255,255,0.55);
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 9999px;
+      padding: 3px 10px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .enter-btn {
+      width: 100%;
+      padding: 13px;
+      border-radius: 9999px;
+      border: none;
+      background: linear-gradient(to right, #AFA2FF, #7B61FF);
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 20px rgba(123,97,255,0.4);
+      &:active { transform: scale(0.97); }
+    }
   `]
 })
 export class MapComponent implements OnInit {
@@ -455,9 +586,31 @@ export class MapComponent implements OnInit {
 
   togglePanel() { this.panelExpanded.update(v => !v); }
 
+  private touchStartY = 0;
+
+  onTouchStart(e: TouchEvent) {
+    this.touchStartY = e.touches[0].clientY;
+  }
+
+  onTouchEnd(e: TouchEvent) {
+    const delta = e.changedTouches[0].clientY - this.touchStartY;
+    if (delta > 50) {
+      // Swiped down more than 50px → collapse
+      this.panelExpanded.set(false);
+    } else if (delta < -50) {
+      // Swiped up more than 50px → expand
+      this.panelExpanded.set(true);
+    }
+  }
+
   selectZone(zone: Zone) {
     this.selectedZone.set(zone);
-    this.panelExpanded.set(true);  // auto-expand when a marker is tapped
+    this.panelExpanded.set(true);
+    // Wait for expand animation then scroll the card into view
+    setTimeout(() => {
+      const card = document.getElementById('zone-card-' + zone.id);
+      card?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }, 400);
   }
 
   enterZone(zone: Zone, event: Event) {
@@ -481,6 +634,17 @@ export class MapComponent implements OnInit {
   }
 
   getDistance(zone: Zone): number {
-    return Math.floor(Math.random() * 80 + 20);
+    const hash = zone.id.charCodeAt(0) % 9;
+    return hash + 1;
+  }
+
+  getZoneTags(zone: Zone): string[] {
+    const tagMap: Record<string, string[]> = {
+      zone_001: ['CYBER TAG', 'QUEST'],
+      zone_002: ['LOUNGE', 'CHILL'],
+      zone_003: ['BATTLE', 'ARENA'],
+      zone_004: ['SOCIAL', 'MEET'],
+    };
+    return tagMap[zone.id] ?? ['VIBE', 'CONNECT'];
   }
 }
