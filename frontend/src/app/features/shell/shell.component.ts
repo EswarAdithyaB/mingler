@@ -164,7 +164,7 @@ export class ShellComponent implements OnInit {
   constructor(private router: Router) {}
 
   ngOnInit() {
-    const HIDE_ROUTES = ['/zone/', '/zone-entry/'];
+    const HIDE_ROUTES = ['/zone-entry/'];
     this.router.events
       .pipe(filter(e => e instanceof NavigationEnd))
       .subscribe((e: any) => {

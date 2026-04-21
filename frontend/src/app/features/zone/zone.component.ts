@@ -7,22 +7,19 @@ import { Zone } from '../../core/models';
 
 type ActionTab = 'lounge' | 'games' | 'vibe' | 'confess';
 
-/** Positions are in WORLD coordinates (0–100%) inside the 300%×300% world div */
 interface LoungeUser {
   id: string;
   name: string;
   avatarEmoji: string;
+  gender: 'f' | 'm';
   ringColor: string;
   activityEmoji: string;
   nameStyle: 'pill' | 'text';
   nameColor: string;
-  /** world x position 0-100 (50 = viewport center) */
   wx: number;
-  /** world y position 0-100 (50 = viewport center) */
   wy: number;
   size: 'lg' | 'md' | 'sm';
   isMe: boolean;
-  /** distance ring: 1=near, 2=mid, 3=far (far users only visible when zoomed out) */
   ring: 1 | 2 | 3;
 }
 
@@ -31,8 +28,6 @@ interface ConfessionPost {
   text: string; revealed: boolean; mood: string;
 }
 
-const STEPS = ['Syncing your avatar...', 'Scanning zone frequencies...', 'Connecting...', 'Almost there...'];
-
 @Component({
   selector: 'app-zone',
   standalone: true,
@@ -40,36 +35,25 @@ const STEPS = ['Syncing your avatar...', 'Scanning zone frequencies...', 'Connec
   template: `
     <div class="zone-root">
 
-      <!-- ══ HEADER ══════════════════════════════════════════ -->
-      <div class="zone-header">
-        <div class="zh-left">
-          <div class="signal-icon">
-            <span class="sig-ring sr-o"></span>
-            <span class="sig-ring sr-m"></span>
-            <span class="sig-dot"></span>
-          </div>
-          <h1 class="zone-title">{{ (zone()?.name || 'Neon Lounge') | uppercase }}</h1>
-        </div>
-        <div class="zh-right">
-          <button class="players-pill">
-            <span class="pill-dot"></span>
-            {{ playerCount() }} MEMBERS
-          </button>
-          <button class="leave-btn" (click)="leaveZone()">✕</button>
-        </div>
-      </div>
-
-      <!-- ══ LOUNGE VIEWPORT (clips the 300% world) ══════════ -->
+      <!-- ══ FULL-SCREEN MAP + WORLD ════════════════════════ -->
       <div class="lounge-viewport">
 
-        <!-- 300%×300% scalable world — transform-origin = viewport center -->
+        <!-- 300%×300% scalable world — pannable via touch -->
         <div class="lounge-world"
-          [style.transform]="'scale(' + zoomLevel() + ')'">
+          [style.transform]="worldTransform()"
+          (touchstart)="onMapTouchStart($event)"
+          (touchmove)="onMapTouchMove($event)"
+          (touchend)="onMapTouchEnd($event)">
 
-          <!-- ── Map background (inside world, zooms with avatars) ── -->
-          <img class="map-bg" src="assets/background_map.svg" alt="" aria-hidden="true"/>
+          <!-- Map / background layer -->
+          @if (selectedBg().type === 'map') {
+            <img class="map-bg" src="assets/background_map.svg" alt="" aria-hidden="true"/>
+          } @else if (selectedBg().type === 'color') {
+            <div class="map-bg" [style.background]="selectedBg().value"></div>
+          } @else if (selectedBg().type === 'gradient') {
+            <div class="map-bg" [style.background]="selectedBg().value"></div>
+          }
 
-          <!-- ── Avatar nodes ── -->
           @for (u of loungeUsers(); track u.id) {
             <div class="avatar-node"
               [class]="'size-' + u.size"
@@ -77,7 +61,6 @@ const STEPS = ['Syncing your avatar...', 'Scanning zone frequencies...', 'Connec
               [style.top]="u.wy + '%'"
               (click)="openProfile(u)">
 
-              <!-- Label pill above avatar -->
               <div class="activity-float">
                 @if (u.activityEmoji) { <span>{{ u.activityEmoji }}</span> }
                 <span>{{ u.name }}</span>
@@ -86,53 +69,173 @@ const STEPS = ['Syncing your avatar...', 'Scanning zone frequencies...', 'Connec
               <div class="avatar-frame" [class.me-frame]="u.isMe"
                 [style.border-color]="u.ringColor"
                 [style.box-shadow]="'0 0 0 4px ' + u.ringColor + '33, 0 0 18px ' + u.ringColor + '88, 0 0 36px ' + u.ringColor + '44'">
-                <div class="avatar-inner">{{ u.avatarEmoji }}</div>
+                <img class="avatar-img"
+                  [src]="u.gender === 'f' ? 'assets/avatar_female.svg' : 'assets/avatar_male.svg'"
+                  [alt]="u.name"/>
               </div>
 
             </div>
           }
-        </div><!-- /lounge-world -->
+        </div>
 
-        <!-- ── Zoom controls (outside world, always same size) ── -->
+        <!-- ── Top bar: zone name left, member count + leave right ── -->
+        <div class="map-top-bar">
+          <div class="map-top-left">
+            <div class="signal-icon">
+              <span class="sig-ring sr-o"></span>
+              <span class="sig-ring sr-m"></span>
+              <span class="sig-dot"></span>
+            </div>
+            <h1 class="zone-title">{{ (zone()?.name || 'Neon Lounge') | uppercase }}</h1>
+          </div>
+          <div class="map-top-right">
+            <div class="players-pill">
+              <span class="pill-dot"></span>
+              {{ playerCount() }} MEMBERS
+            </div>
+            <button class="leave-btn" (click)="leaveZone()">✕</button>
+          </div>
+        </div>
+
+        <!-- ── Vibe badge pill (top left, below top bar) ── -->
+        <div class="vibe-badge-pill">
+          <span class="vibe-emoji-sm">{{ currentVibeEmoji }}</span>
+          <span class="vibe-label-sm">{{ currentVibe }}</span>
+        </div>
+
+        <!-- ── EVENT ALERT card (top right, swipeable left) ── -->
+        @if (showEventAlert()) {
+          <div class="event-card"
+            [style.transform]="'translateX(' + eventSwipeX() + 'px)'"
+            [style.opacity]="eventCardOpacity()"
+            (touchstart)="onEventTouchStart($event)"
+            (touchmove)="onEventTouchMove($event)"
+            (touchend)="onEventTouchEnd($event)">
+            <div class="event-card-inner">
+              <div class="event-top-row">
+                <div class="event-alert-pill">
+                  <span class="event-dot"></span>
+                  EVENT ALERT
+                </div>
+                <span class="event-timer">{{ eventTimer }}</span>
+              </div>
+              <p class="event-desc">Confession pit opening in {{ eventTimer }}. Drop your secrets.</p>
+              <div class="event-swipe-hint">← swipe to dismiss</div>
+            </div>
+          </div>
+        }
+
+        <!-- ── Zoom controls (right side) ── -->
         <div class="zoom-controls">
           <button class="zoom-btn" (click)="adjustZoom(0.12)"
             [disabled]="zoomLevel() >= MAX_ZOOM">
-            <span>+</span>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M7 1V13M1 7H13" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            </svg>
           </button>
-          <div class="zoom-indicator">
-            <div class="zoom-bar-track">
-              <div class="zoom-bar-fill"
-                [style.height]="zoomPercent() + '%'"></div>
-            </div>
+          <div class="zoom-bar-track">
+            <div class="zoom-bar-fill" [style.height]="zoomPercent() + '%'"></div>
           </div>
           <button class="zoom-btn" (click)="adjustZoom(-0.12)"
             [disabled]="zoomLevel() <= MIN_ZOOM">
-            <span>−</span>
+            <svg width="14" height="4" viewBox="0 0 14 4" fill="none">
+              <path d="M1 2H13" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <!-- Recenter button -->
+          <button class="zoom-btn recenter-btn" (click)="recenterMap()">
+            <svg width="19" height="19" viewBox="0 0 19 19" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M8.29167 18.25V16.5833C6.55556 16.3889 5.06597 15.6701 3.82292 14.4271C2.57986 13.184 1.86111 11.6944 1.66667 9.95833H0V8.29167H1.66667C1.86111 6.55556 2.57986 5.06597 3.82292 3.82292C5.06597 2.57986 6.55556 1.86111 8.29167 1.66667V0H9.95833V1.66667C11.6944 1.86111 13.184 2.57986 14.4271 3.82292C15.6701 5.06597 16.3889 6.55556 16.5833 8.29167H18.25V9.95833H16.5833C16.3889 11.6944 15.6701 13.184 14.4271 14.4271C13.184 15.6701 11.6944 16.3889 9.95833 16.5833V18.25H8.29167ZM9.125 14.9583C10.7361 14.9583 12.1111 14.3889 13.25 13.25C14.3889 12.1111 14.9583 10.7361 14.9583 9.125C14.9583 7.51389 14.3889 6.13889 13.25 5C12.1111 3.86111 10.7361 3.29167 9.125 3.29167C7.51389 3.29167 6.13889 3.86111 5 5C3.86111 6.13889 3.29167 7.51389 3.29167 9.125C3.29167 10.7361 3.86111 12.1111 5 13.25C6.13889 14.3889 7.51389 14.9583 9.125 14.9583ZM9.125 12.4583C8.20833 12.4583 7.42361 12.1319 6.77083 11.4792C6.11806 10.8264 5.79167 10.0417 5.79167 9.125C5.79167 8.20833 6.11806 7.42361 6.77083 6.77083C7.42361 6.11806 8.20833 5.79167 9.125 5.79167C10.0417 5.79167 10.8264 6.11806 11.4792 6.77083C12.1319 7.42361 12.4583 8.20833 12.4583 9.125C12.4583 10.0417 12.1319 10.8264 11.4792 11.4792C10.8264 12.1319 10.0417 12.4583 9.125 12.4583ZM9.125 10.7917C9.58333 10.7917 9.97569 10.6285 10.3021 10.3021C10.6285 9.97569 10.7917 9.58333 10.7917 9.125C10.7917 8.66667 10.6285 8.27431 10.3021 7.94792C9.97569 7.62153 9.58333 7.45833 9.125 7.45833C8.66667 7.45833 8.27431 7.62153 7.94792 7.94792C7.62153 8.27431 7.45833 8.66667 7.45833 9.125C7.45833 9.58333 7.62153 9.97569 7.94792 10.3021C8.27431 10.6285 8.66667 10.7917 9.125 10.7917Z" fill="white"/>
+            </svg>
+          </button>
+
+          <!-- Layer picker button -->
+          <button class="zoom-btn layer-btn" [class.layer-active]="showLayerPicker()" (click)="showLayerPicker.set(!showLayerPicker())"  >
+            <svg width="15" height="16" viewBox="0 0 15 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M7.5 15.875L0 10.0417L1.375 9L7.5 13.75L13.625 9L15 10.0417L7.5 15.875ZM7.5 11.6667L0 5.83333L7.5 0L15 5.83333L7.5 11.6667ZM7.5 9.54167L12.2917 5.83333L7.5 2.125L2.70833 5.83333L7.5 9.54167Z"
+                [attr.fill]="showLayerPicker() ? '#A78BFA' : 'rgba(255,255,255,0.5)'"/>
+            </svg>
           </button>
         </div>
 
+        <!-- ── Floating action buttons (bottom of map, above nav) ── -->
+        <div class="floating-actions">
+          <!-- GAMES -->
+          <button class="fab-action" [class.fab-active]="activeAction() === 'games'"
+            (click)="setAction('games')">
+            <span class="fab-icon">
+              <svg width="18" height="13" viewBox="0 0 20 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2.535 14C1.685 14 1.02667 13.7042 0.56 13.1125C0.0933333 12.5208 -0.0816667 11.8 0.035 10.95L1.085 3.45C1.235 2.45 1.68083 1.625 2.4225 0.975C3.16417 0.325 4.035 0 5.035 0H14.935C15.935 0 16.8058 0.325 17.5475 0.975C18.2892 1.625 18.735 2.45 18.885 3.45L19.935 10.95C20.0517 11.8 19.8767 12.5208 19.41 13.1125C18.9433 13.7042 18.285 14 17.435 14C17.085 14 16.76 13.9375 16.46 13.8125C16.16 13.6875 15.885 13.5 15.635 13.25L13.385 11H6.585L4.335 13.25C4.085 13.5 3.81 13.6875 3.51 13.8125C3.21 13.9375 2.885 14 2.535 14ZM2.935 11.85L5.785 9H14.185L17.035 11.85C17.0683 11.8833 17.2017 11.9333 17.435 12C17.6183 12 17.7642 11.9458 17.8725 11.8375C17.9808 11.7292 18.0183 11.5833 17.985 11.4L16.885 3.7C16.8183 3.21667 16.6017 2.8125 16.235 2.4875C15.8683 2.1625 15.435 2 14.935 2H5.035C4.535 2 4.10167 2.1625 3.735 2.4875C3.36833 2.8125 3.15167 3.21667 3.085 3.7L1.985 11.4C1.95167 11.5833 1.98917 11.7292 2.0975 11.8375C2.20583 11.9458 2.35167 12 2.535 12C2.56833 12 2.70167 11.95 2.935 11.85ZM14.985 8C15.2683 8 15.5058 7.90417 15.6975 7.7125C15.8892 7.52083 15.985 7.28333 15.985 7C15.985 6.71667 15.8892 6.47917 15.6975 6.2875C15.5058 6.09583 15.2683 6 14.985 6C14.7017 6 14.4642 6.09583 14.2725 6.2875C14.0808 6.47917 13.985 6.71667 13.985 7C13.985 7.28333 14.0808 7.52083 14.2725 7.7125C14.4642 7.90417 14.7017 8 14.985 8ZM12.985 5C13.2683 5 13.5058 4.90417 13.6975 4.7125C13.8892 4.52083 13.985 4.28333 13.985 4C13.985 3.71667 13.8892 3.47917 13.6975 3.2875C13.5058 3.09583 13.2683 3 12.985 3C12.7017 3 12.4642 3.09583 12.2725 3.2875C12.0808 3.47917 11.985 3.71667 11.985 4C11.985 4.28333 12.0808 4.52083 12.2725 4.7125C12.4642 4.90417 12.7017 5 12.985 5ZM5.735 8H7.235V6.25H8.985V4.75H7.235V3H5.735V4.75H3.985V6.25H5.735V8Z"
+                  fill="white"/>
+              </svg>
+            </span>
+            <span class="fab-label">GAMES</span>
+          </button>
+
+          <!-- TALK -->
+          <button class="fab-action fab-talk" [class.fab-active]="activeAction() === 'vibe'"
+            (click)="setAction('vibe')">
+            <span class="fab-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2C6.477 2 2 6.477 2 12C2 13.89 2.525 15.655 3.435 17.165L2.05 21.95L6.835 20.565C8.345 21.475 10.11 22 12 22C17.523 22 22 17.523 22 12C22 6.477 17.523 2 12 2ZM8 13H7V11H8V13ZM12.5 13H11.5V11H12.5V13ZM17 13H16V11H17V13Z"
+                  fill="white"/>
+              </svg>
+            </span>
+            <span class="fab-label">TALK</span>
+          </button>
+
+          <!-- CONFESS -->
+          <button class="fab-action" [class.fab-active]="activeAction() === 'confess'"
+            (click)="setAction('confess')">
+            <span class="fab-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 1L15.09 8.26L23 9.27L17.5 14.64L18.18 22.63L12 19.27L5.82 22.63L6.5 14.64L1 9.27L8.91 8.26L12 1Z"
+                  fill="white"/>
+              </svg>
+            </span>
+            <span class="fab-label">CONFESS</span>
+          </button>
+        </div>
+
+        <!-- ── Layer picker sheet ── -->
+        @if (showLayerPicker()) {
+          <div class="layer-backdrop" (click)="showLayerPicker.set(false)">
+            <div class="layer-sheet" (click)="$event.stopPropagation()">
+              <div class="layer-sheet-handle"></div>
+              <div class="layer-sheet-title">Choose Background</div>
+              <div class="layer-grid">
+                @for (bg of bgOptions; track bg.id) {
+                  <button class="layer-option"
+                    [class.layer-option-active]="selectedBg().id === bg.id"
+                    (click)="selectBg(bg)">
+                    <div class="layer-preview"
+                      [style.background]="bg.preview"
+                      [style.border-color]="selectedBg().id === bg.id ? '#7B61FF' : 'rgba(255,255,255,0.1)'">
+                      @if (bg.type === 'map') {
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                          <path d="M20.5 3L20.34 3.03L15 5.1L9 3L3.36 4.9C3.15 4.97 3 5.15 3 5.38V20.5C3 20.78 3.22 21 3.5 21L3.66 20.97L9 18.9L15 21L20.64 19.1C20.85 19.03 21 18.85 21 18.62V3.5C21 3.22 20.78 3 20.5 3ZM15 19L9 16.89V5L15 7.11V19Z" fill="rgba(255,255,255,0.6)"/>
+                        </svg>
+                      }
+                    </div>
+                    <span class="layer-name">{{ bg.name }}</span>
+                    @if (selectedBg().id === bg.id) {
+                      <span class="layer-check">
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                          <circle cx="8" cy="8" r="8" fill="#7B61FF"/>
+                          <path d="M5 8L7 10L11 6" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                      </span>
+                    }
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+        }
+
       </div><!-- /lounge-viewport -->
 
-      <!-- ══ ZONE ACTION BAR ══════════════════════════════════ -->
-      <div class="zone-bar">
-        <button class="zb-btn" [class.active]="activeAction() === 'games'"
-          (click)="setAction('games')">
-          <div class="zb-icon-wrap" [class.active-wrap]="activeAction() === 'games'">🎮</div>
-          <span class="zb-label">GAMES</span>
-        </button>
-        <button class="zb-btn" [class.active]="activeAction() === 'vibe'"
-          (click)="setAction('vibe')">
-          <div class="zb-icon-wrap" [class.active-wrap]="activeAction() === 'vibe'">💜</div>
-          <span class="zb-label">VIBE</span>
-        </button>
-        <button class="zb-btn" [class.active]="activeAction() === 'confess'"
-          (click)="setAction('confess')">
-          <div class="zb-icon-wrap" [class.active-wrap]="activeAction() === 'confess'">✦</div>
-          <span class="zb-label">CONFESS</span>
-        </button>
-      </div>
-
-      <!-- ══ CONFESS OVERLAY (slides up over lounge) ══════════ -->
+      <!-- ══ CONFESS OVERLAY ══════════════════════════════════ -->
       @if (activeAction() === 'confess') {
         <div class="confess-overlay">
           <div class="confess-hdr">
@@ -197,12 +300,20 @@ const STEPS = ['Syncing your avatar...', 'Scanning zone frequencies...', 'Connec
       <!-- ══ PROFILE PEEK SHEET ════════════════════════════════ -->
       @if (peekedUser()) {
         <div class="sheet-backdrop" (click)="peekedUser.set(null)">
-          <div class="profile-sheet" (click)="$event.stopPropagation()">
+          <div class="profile-sheet"
+            (click)="$event.stopPropagation()"
+            [style.transform]="sheetDragY() > 0 ? 'translateY(' + sheetDragY() + 'px)' : 'translateY(0)'"
+            [style.transition]="sheetDragging ? 'none' : 'transform 0.3s cubic-bezier(0.16,1,0.3,1)'"
+            (touchstart)="onSheetTouchStart($event)"
+            (touchmove)="onSheetTouchMove($event)"
+            (touchend)="onSheetTouchEnd($event)">
             <div class="sheet-handle"></div>
             <div class="sheet-avatar"
               [style.border-color]="peekedUser()!.ringColor"
               [style.box-shadow]="'0 0 24px ' + peekedUser()!.ringColor + '88'">
-              {{ peekedUser()!.avatarEmoji }}
+              <img class="avatar-img"
+                [src]="peekedUser()!.gender === 'f' ? 'assets/avatar_female.svg' : 'assets/avatar_male.svg'"
+                [alt]="peekedUser()!.name"/>
             </div>
             <div class="sheet-name">{{ peekedUser()!.name }}</div>
             <div class="sheet-badge">{{ peekedUser()!.activityEmoji || '✨' }} Active now</div>
@@ -219,86 +330,33 @@ const STEPS = ['Syncing your avatar...', 'Scanning zone frequencies...', 'Connec
   styles: [`
     :host { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
 
-    /* ── Root ─────────────────────────────────────────── */
     .zone-root {
       display: flex; flex-direction: column; flex: 1; min-height: 0;
       background: #090912; position: relative; overflow: hidden;
     }
 
-    /* ── Header ───────────────────────────────────────── */
-    .zone-header {
-      flex-shrink: 0; display: flex; align-items: center;
-      justify-content: space-between; padding: 12px 16px;
-      padding-top: calc(env(safe-area-inset-top, 0px) + 12px);
-      background: rgba(9,9,18,0.96); backdrop-filter: blur(12px);
-      border-bottom: 1px solid rgba(255,255,255,0.06); z-index: 20;
-    }
-    .zh-left { display: flex; align-items: center; gap: 10px; }
-    .zh-right { display: flex; align-items: center; gap: 8px; }
-
-    .signal-icon {
-      position: relative; width: 22px; height: 22px;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .sig-ring {
-      position: absolute; border-radius: 50%; border: 1.5px solid #a78bfa;
-      animation: sig-pulse 2s ease-in-out infinite;
-    }
-    .sr-o { width: 20px; height: 20px; opacity: 0.3; animation-delay: 0s; }
-    .sr-m { width: 13px; height: 13px; opacity: 0.55; animation-delay: 0.4s; }
-    .sig-dot {
-      position: absolute; width: 5px; height: 5px; border-radius: 50%;
-      background: #a78bfa; box-shadow: 0 0 6px #a78bfa;
-    }
-    @keyframes sig-pulse {
-      0%,100%{opacity:0.25;transform:scale(1)} 50%{opacity:0.7;transform:scale(1.1)}
-    }
-    .zone-title {
-      font-size: 15px; font-weight: 900; color: white; letter-spacing: 1.5px; margin: 0;
-    }
-    .players-pill {
-      display: flex; align-items: center; gap: 6px;
-      background: rgba(16,185,129,0.1); border: 1.5px solid rgba(16,185,129,0.35);
-      border-radius: 20px; padding: 5px 12px; font-size: 11px; font-weight: 700;
-      color: #10b981; cursor: default; letter-spacing: 0.5px;
-    }
-    .pill-dot {
-      width: 7px; height: 7px; border-radius: 50%; background: #10b981;
-      box-shadow: 0 0 6px #10b981; animation: pill-blink 1.5s infinite;
-    }
-    @keyframes pill-blink { 0%,100%{opacity:1}50%{opacity:0.4} }
-    .leave-btn {
-      width: 30px; height: 30px; border-radius: 50%;
-      background: rgba(255,255,255,0.08); border: none;
-      color: rgba(255,255,255,0.5); font-size: 13px; cursor: pointer;
-    }
-
-    /* ══ LOUNGE VIEWPORT ══════════════════════════════════ */
+    /* ══ LOUNGE VIEWPORT — full remaining height ══════════════ */
     .lounge-viewport {
       flex: 1; min-height: 0; position: relative; overflow: hidden;
     }
 
-    /*
-      The world is 3× the viewport in both dimensions.
-      top: -100% and left: -100% centre it so viewport-centre = world 50,50%.
-      transform-origin: 50% 50%  keeps that centre-point fixed while scaling.
-    */
     .lounge-world {
       position: absolute;
       width: 300%; height: 300%;
       top: -100%; left: -100%;
       transform-origin: 50% 50%;
-      transition: transform 0.4s cubic-bezier(0.34, 1.2, 0.64, 1);
+      transition: transform 0.35s cubic-bezier(0.34, 1.2, 0.64, 1);
       z-index: 1;
+      will-change: transform;
+      touch-action: none;
     }
 
-    /* ── Map background — fills the 300×300% world, zooms with avatars ── */
     .map-bg {
       position: absolute; inset: 0; width: 100%; height: 100%;
       object-fit: cover; pointer-events: none; z-index: 0;
     }
 
-    /* ── Avatar nodes ───────────────────────────────────── */
+    /* ── Avatar nodes ─────────────────────────────────────── */
     .avatar-node {
       position: absolute; display: flex; flex-direction: column;
       align-items: center; gap: 4px;
@@ -306,7 +364,6 @@ const STEPS = ['Syncing your avatar...', 'Scanning zone frequencies...', 'Connec
       transition: transform 0.2s;
       &:active { transform: translate(-50%, -50%) scale(0.92); }
     }
-    /* Sizes */
     .size-lg .avatar-frame { width: min(86px, 20vw); height: min(86px, 20vw); }
     .size-md .avatar-frame { width: min(64px, 15vw); height: min(64px, 15vw); }
     .size-sm .avatar-frame { width: min(50px, 12vw); height: min(50px, 12vw); }
@@ -323,7 +380,6 @@ const STEPS = ['Syncing your avatar...', 'Scanning zone frequencies...', 'Connec
       backdrop-filter: blur(6px);
       margin-bottom: 4px;
     }
-
     .avatar-frame {
       border-radius: 50%;
       border: 3px solid #7c3aed;
@@ -345,47 +401,142 @@ const STEPS = ['Syncing your avatar...', 'Scanning zone frequencies...', 'Connec
     }
     @keyframes avatar-appear{from{opacity:0;transform:scale(0.6)}to{opacity:1;transform:scale(1)}}
     .avatar-inner { line-height: 1; user-select: none; }
+    .avatar-img {
+      width: 100%; height: 100%;
+      object-fit: cover; object-position: center top;
+      border-radius: 50%;
+      display: block;
+      user-select: none; pointer-events: none;
+    }
 
-    .username-pill {
-      background: rgba(20,16,40,0.82); border: 1px solid rgba(139,92,246,0.45);
-      border-radius: 20px; padding: 4px 12px;
-      font-size: min(11px, 2.8vw); font-weight: 700; color: white;
-      white-space: nowrap; backdrop-filter: blur(6px);
+    /* ══ MAP TOP BAR ══════════════════════════════════════════ */
+    .map-top-bar {
+      position: absolute; top: 0; left: 0; right: 0; z-index: 20;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px 12px;
+      background: linear-gradient(to bottom, rgba(9,9,18,0.9) 0%, transparent 100%);
+      backdrop-filter: blur(4px);
     }
-    .username-text {
-      font-size: min(10px, 2.5vw); font-weight: 700;
-      letter-spacing: 0.5px; white-space: nowrap;
-      color: rgba(255,255,255,0.9);
-      text-shadow: 0 1px 6px rgba(0,0,0,0.95);
-    }
-    .you-sparkle {
-      font-size: 10px; color: #facc15; letter-spacing: 4px;
-      animation: sparkle-spin 2s linear infinite;
-    }
-    @keyframes sparkle-spin{0%,100%{opacity:0.7}50%{opacity:1;transform:scale(1.15)}}
+    .map-top-left { display: flex; align-items: center; gap: 8px; }
+    .map-top-right { display: flex; align-items: center; gap: 8px; }
 
-    /* ── Zoom Controls ─────────────────────────────────── */
+    .signal-icon {
+      position: relative; width: 22px; height: 22px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .sig-ring {
+      position: absolute; border-radius: 50%; border: 1.5px solid #a78bfa;
+      animation: sig-pulse 2s ease-in-out infinite;
+    }
+    .sr-o { width: 20px; height: 20px; opacity: 0.3; animation-delay: 0s; }
+    .sr-m { width: 13px; height: 13px; opacity: 0.55; animation-delay: 0.4s; }
+    .sig-dot {
+      position: absolute; width: 5px; height: 5px; border-radius: 50%;
+      background: #a78bfa; box-shadow: 0 0 6px #a78bfa;
+    }
+    @keyframes sig-pulse {
+      0%,100%{opacity:0.25;transform:scale(1)} 50%{opacity:0.7;transform:scale(1.1)}
+    }
+    .zone-title {
+      font-size: 14px; font-weight: 900; color: white; letter-spacing: 1.5px; margin: 0;
+    }
+    .players-pill {
+      display: flex; align-items: center; gap: 5px;
+      background: rgba(16,185,129,0.12); border: 1.5px solid rgba(16,185,129,0.35);
+      border-radius: 20px; padding: 4px 10px; font-size: 10px; font-weight: 700;
+      color: #10b981; letter-spacing: 0.5px;
+    }
+    .pill-dot {
+      width: 6px; height: 6px; border-radius: 50%; background: #10b981;
+      box-shadow: 0 0 6px #10b981; animation: pill-blink 1.5s infinite;
+    }
+    @keyframes pill-blink { 0%,100%{opacity:1}50%{opacity:0.4} }
+    .leave-btn {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15);
+      color: rgba(255,255,255,0.7); font-size: 12px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* ══ VIBE BADGE PILL ══════════════════════════════════════ */
+    .vibe-badge-pill {
+      position: absolute; left: 16px; z-index: 20;
+      top: calc(env(safe-area-inset-top, 0px) + 60px);
+      display: flex; align-items: center; gap: 5px;
+      background: rgba(123,97,255,0.18);
+      border: 1px solid rgba(123,97,255,0.4);
+      border-radius: 9999px; padding: 5px 12px;
+      backdrop-filter: blur(8px);
+    }
+    .vibe-emoji-sm { font-size: 14px; }
+    .vibe-label-sm {
+      font-size: 10px; font-weight: 800; letter-spacing: 1.5px;
+      color: #C4B5FD;
+    }
+
+    /* ══ EVENT ALERT CARD ═════════════════════════════════════ */
+    .event-card {
+      position: absolute; right: 16px; z-index: 20;
+      top: calc(env(safe-area-inset-top, 0px) + 60px);
+      width: 200px;
+      transition: transform 0.1s ease-out, opacity 0.1s ease-out;
+      touch-action: pan-y;
+    }
+    .event-card-inner {
+      width: 200px;
+      min-height: 109.75px;
+      background: rgba(29,29,55,0.40);
+      border: 1px solid rgba(175,162,255,0.20);
+      border-radius: 24px;
+      padding: 14px 16px;
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      box-sizing: border-box;
+    }
+    .event-top-row {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .event-alert-pill {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 9px; font-weight: 800; letter-spacing: 1px;
+      color: #FBB03B;
+    }
+    .event-dot {
+      width: 6px; height: 6px; border-radius: 50%; background: #FBB03B;
+      box-shadow: 0 0 6px #FBB03B; animation: pill-blink 1.2s infinite;
+    }
+    .event-timer {
+      font-size: 12px; font-weight: 800; color: white; letter-spacing: 0.5px;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    .event-desc {
+      font-size: 11px; color: rgba(255,255,255,0.65); line-height: 1.5; margin: 0 0 6px;
+    }
+    .event-swipe-hint {
+      font-size: 9px; color: rgba(255,255,255,0.25); text-align: right; letter-spacing: 0.5px;
+    }
+
+    /* ══ ZOOM CONTROLS ════════════════════════════════════════ */
     .zoom-controls {
-      position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+      position: absolute; right: 14px; bottom: 220px;
       display: flex; flex-direction: column; align-items: center; gap: 8px;
-      z-index: 30;
+      z-index: 25;
     }
     .zoom-btn {
-      width: 38px; height: 38px; border-radius: 50%;
+      width: 36px; height: 36px; border-radius: 50%;
       background: rgba(20,18,40,0.85); border: 1.5px solid rgba(124,58,237,0.35);
-      color: white; font-size: 22px; font-weight: 300; cursor: pointer;
+      color: white; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
       backdrop-filter: blur(8px); transition: all 0.2s;
-      line-height: 1;
       &:not(:disabled):active {
         background: rgba(124,58,237,0.3); border-color: rgba(124,58,237,0.7);
         transform: scale(0.92);
       }
       &:disabled { opacity: 0.3; cursor: default; }
     }
-    .zoom-indicator { display: flex; flex-direction: column; align-items: center; }
     .zoom-bar-track {
-      width: 4px; height: 50px; border-radius: 2px;
+      width: 4px; height: 44px; border-radius: 2px;
       background: rgba(255,255,255,0.1); overflow: hidden;
       display: flex; flex-direction: column-reverse;
     }
@@ -394,39 +545,133 @@ const STEPS = ['Syncing your avatar...', 'Scanning zone frequencies...', 'Connec
       background: linear-gradient(0deg, #7c3aed, #c4b5fd);
       transition: height 0.3s ease;
     }
+    .recenter-btn {
+      margin-top: 4px;
+      border-color: rgba(167,139,250,0.4);
+      width: 40px; height: 40px;
+    }
+    .recenter-btn:active {
+      background: rgba(167,139,250,0.2);
+      border-color: rgba(167,139,250,0.7);
+    }
+    .layer-btn {
+      margin-top: 4px;
+      width: 40px; height: 40px;
+      transition: all 0.2s;
+    }
+    .layer-btn.layer-active {
+      border-color: rgba(167,139,250,0.5);
+      background: rgba(167,139,250,0.15);
+    }
+    .layer-btn:active {
+      background: rgba(167,139,250,0.2);
+    }
 
-    /* ══ ZONE ACTION BAR ══════════════════════════════════ */
-    .zone-bar {
-      flex-shrink: 0; display: flex; align-items: center;
-      justify-content: space-around;
-      padding: 10px 20px calc(env(safe-area-inset-bottom, 0px) + 10px);
-      background: rgba(9,9,18,0.98);
-      border-top: 1px solid rgba(124,58,237,0.2);
-      z-index: 20;
+    /* ══ LAYER PICKER SHEET ═══════════════════════════════════ */
+    .layer-backdrop {
+      position: absolute; inset: 0; z-index: 35;
+      background: rgba(0,0,0,0.5);
+      display: flex; align-items: flex-end;
+      animation: fade-in 0.2s ease;
     }
-    .zb-btn {
-      display: flex; flex-direction: column; align-items: center; gap: 5px;
-      background: none; border: none; cursor: pointer; padding: 4px 16px;
-      color: rgba(255,255,255,0.3); transition: color 0.2s;
-      &.active { color: white; }
+    @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+    .layer-sheet {
+      width: 100%;
+      background: rgba(13,11,30,0.96);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-bottom: none;
+      border-radius: 28px 28px 0 0;
+      padding: 12px 20px calc(130px + env(safe-area-inset-bottom, 0px));
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      animation: slide-up 0.28s cubic-bezier(0.16,1,0.3,1) both;
     }
-    .zb-icon-wrap {
-      width: 54px; height: 54px; border-radius: 50%;
+    @keyframes slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+    .layer-sheet-handle {
+      width: 36px; height: 4px; border-radius: 2px;
+      background: rgba(255,255,255,0.15);
+      margin: 0 auto 16px;
+    }
+    .layer-sheet-title {
+      font-size: 13px; font-weight: 800; letter-spacing: 1.5px;
+      color: rgba(255,255,255,0.4); text-align: center;
+      margin-bottom: 16px; text-transform: uppercase;
+    }
+    .layer-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    .layer-option {
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      background: none; border: none; cursor: pointer; padding: 0;
+      position: relative;
+    }
+    .layer-preview {
+      width: 100%; aspect-ratio: 1;
+      border-radius: 16px;
+      border: 2px solid rgba(255,255,255,0.1);
       display: flex; align-items: center; justify-content: center;
-      font-size: 22px; background: rgba(255,255,255,0.06);
-      border: 1.5px solid rgba(255,255,255,0.1);
-      transition: all 0.25s;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      overflow: hidden;
     }
-    .zb-icon-wrap.active-wrap {
-      background: linear-gradient(135deg, #7c3aed, #5B21B6);
-      border-color: #8b5cf6; font-size: 24px;
-      box-shadow: 0 4px 20px rgba(124,58,237,0.5);
+    .layer-option-active .layer-preview {
+      box-shadow: 0 0 0 2px #7B61FF, 0 0 16px rgba(123,97,255,0.4);
     }
-    .zb-label {
-      font-size: 10px; font-weight: 700; letter-spacing: 0.8px;
+    .layer-name {
+      font-size: 11px; font-weight: 600;
+      color: rgba(255,255,255,0.6);
+      letter-spacing: 0.3px;
+    }
+    .layer-option-active .layer-name { color: #A78BFA; }
+    .layer-check {
+      position: absolute; top: 6px; right: 6px;
     }
 
-    /* ══ CONFESS OVERLAY ══════════════════════════════════ */
+    /* ══ FLOATING ACTION BUTTONS ══════════════════════════════ */
+    .floating-actions {
+      position: absolute; bottom: 120px; left: 0; right: 0; z-index: 25;
+      display: flex; align-items: center; justify-content: center; gap: 12px;
+      padding: 0 24px;
+    }
+
+    .fab-action {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 109.33px; height: 56px;
+      padding: 0 16px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 9999px;
+      color: white; cursor: pointer;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.37);
+      transition: all 0.2s;
+      flex-shrink: 0;
+      &:active { transform: scale(0.95); }
+      &.fab-active {
+        background: rgba(123,97,255,0.2);
+        border-color: rgba(123,97,255,0.4);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.37), 0 0 16px rgba(123,97,255,0.25);
+      }
+    }
+
+    .fab-talk {
+      background: rgba(255,255,255,0.03);
+      border-color: rgba(255,255,255,0.10);
+    }
+
+    .fab-icon {
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .fab-label {
+      font-size: 11px; font-weight: 800; letter-spacing: 1px; color: white;
+    }
+
+    /* ══ CONFESS OVERLAY ══════════════════════════════════════ */
     .confess-overlay {
       position: absolute; inset: 0; z-index: 40; background: #0d0b1e;
       display: flex; flex-direction: column;
@@ -446,37 +691,27 @@ const STEPS = ['Syncing your avatar...', 'Scanning zone frequencies...', 'Connec
       border:none;color:rgba(255,255,255,0.6);font-size:14px;cursor:pointer;
     }
     .confess-body{
-      /* Never flex-shrink children — scroll the whole body instead */
       flex:1;min-height:0;overflow-y:auto;padding:12px 16px;scrollbar-width:none;
-      display:flex;flex-direction:column;gap:10px;
-      /* Prevent flex from squeezing children */
-      align-items:stretch;
+      display:flex;flex-direction:column;gap:10px;align-items:stretch;
       &::-webkit-scrollbar{display:none}
     }
     .privacy-shield{display:flex;flex-direction:column;gap:3px;flex-shrink:0}
     .ps-label{font-size:11px;font-weight:800;letter-spacing:1px;color:#f59e0b}
     .ps-sub{font-size:13px;color:rgba(255,255,255,0.45)}
-
-    /* Divider below privacy shield */
     .privacy-shield::after{
       content:''; display:block; height:1px;
       background:rgba(255,255,255,0.08); margin-top:10px;
     }
-
     .confess-card{
-      /* Fixed size — never shrinks */
       flex-shrink:0;
       background:rgba(22,18,45,0.8);border:1px solid rgba(255,255,255,0.08);border-radius:16px;overflow:hidden;
     }
     .confess-ta{
-      /* Locked height — resize:none + explicit height so flex cannot crush it */
-      display:block;
-      width:100%; height:110px;           /* fixed, always 110 px tall */
+      display:block; width:100%; height:110px;
       padding:14px 16px;resize:none;
       border:none;outline:none;
       background:transparent;color:white;font-size:14px;line-height:1.6;
-      font-family:inherit;box-sizing:border-box;
-      overflow-y:auto;                     /* scroll inside if text overflows */
+      font-family:inherit;box-sizing:border-box;overflow-y:auto;
       &::placeholder{color:rgba(255,255,255,0.25)}
     }
     .anon-row{
@@ -506,8 +741,7 @@ const STEPS = ['Syncing your avatar...', 'Scanning zone frequencies...', 'Connec
       &.active{background:rgba(124,58,237,0.2);border-color:#8b5cf6;color:white}
     }
     .release-btn{
-      flex-shrink:0;
-      width:100%;padding:13px;border-radius:16px;border:none;
+      flex-shrink:0;width:100%;padding:13px;border-radius:16px;border:none;
       background:linear-gradient(90deg,#7c3aed 0%,#a855f7 40%,#f97316 100%);
       color:white;font-size:16px;font-weight:800;cursor:pointer;
       box-shadow:0 4px 24px rgba(124,58,237,0.4);transition:opacity 0.2s,transform 0.15s;
@@ -539,14 +773,15 @@ const STEPS = ['Syncing your avatar...', 'Scanning zone frequencies...', 'Connec
       color:white;cursor:pointer;white-space:nowrap;backdrop-filter:blur(6px);letter-spacing:0.5px;
     }
 
-    /* ══ PROFILE SHEET ════════════════════════════════════ */
+    /* ══ PROFILE SHEET ════════════════════════════════════════ */
     .sheet-backdrop{
       position:absolute;inset:0;background:rgba(0,0,0,0.65);
       display:flex;align-items:flex-end;z-index:50;
     }
     .profile-sheet{
       width:100%;background:rgba(18,15,38,0.98);border-radius:24px 24px 0 0;
-      border-top:1px solid rgba(124,58,237,0.3);padding:16px 28px 40px;
+      border-top:1px solid rgba(124,58,237,0.3);
+      padding:16px 28px calc(120px + env(safe-area-inset-bottom, 0px));
       display:flex;flex-direction:column;align-items:center;gap:12px;
     }
     .sheet-handle{width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,0.15);margin-bottom:8px}
@@ -563,6 +798,19 @@ const STEPS = ['Syncing your avatar...', 'Scanning zone frequencies...', 'Connec
     }
     .sheet-actions{display:flex;gap:12px;margin-top:8px;width:100%}
     .sheet-actions .btn{flex:1}
+
+    /* shared btn styles */
+    .btn {
+      padding: 12px 16px; border-radius: 12px; border: none;
+      font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #7c3aed, #5b21b6); color: white;
+      box-shadow: 0 4px 16px rgba(124,58,237,0.4);
+    }
+    .btn-ghost {
+      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); color: white;
+    }
   `]
 })
 export class ZoneComponent implements OnInit, OnDestroy {
@@ -573,15 +821,217 @@ export class ZoneComponent implements OnInit, OnDestroy {
   peekedUser   = signal<LoungeUser | null>(null);
   activeAction = signal<ActionTab>('lounge');
   playerCount  = signal(42);
-  zoomLevel    = signal(0.65);   // default: near+mid ring visible
+  zoomLevel    = signal(0.65);
 
-  /** 0–100 % for the zoom bar fill (0 = min zoom, 100 = max zoom) */
   zoomPercent = computed(() => {
     const range = this.MAX_ZOOM - this.MIN_ZOOM;
     return Math.round(((this.zoomLevel() - this.MIN_ZOOM) / range) * 100);
   });
 
-  /* ── Confess state ─────────────────────────────────── */
+  /* ── Pan state ─────────────────────────────────────── */
+  panX = signal(0);
+  panY = signal(0);
+  private mapPanning = false;
+  private mapPanStartX = 0;
+  private mapPanStartY = 0;
+  private mapPanOriginX = 0;
+  private mapPanOriginY = 0;
+
+  /**
+   * The world div is 300% × 300% of the viewport, centred via top:-100% left:-100%.
+   * After scaling by `zoomLevel`, the visible half-width of the world (in screen px) is:
+   *   halfWorld = viewportW * 1.5 * zoom
+   * The viewport half-width is viewportW * 0.5.
+   * Maximum pan before the edge of the world hits the edge of the viewport:
+   *   maxPan = halfWorld - halfViewport = viewportW * (1.5 * zoom - 0.5)
+   * We apply this clamping live so it tightens when zoomed out and relaxes when zoomed in.
+   */
+  private viewportEl: HTMLElement | null = null;
+
+  private get maxPan(): { x: number; y: number } {
+    // Use the actual lounge-viewport element size, not window size,
+    // because the nav bar reduces the available height.
+    const el = this.viewportEl ?? document.querySelector('.lounge-viewport') as HTMLElement;
+    if (el) this.viewportEl = el;
+    const vw = el ? el.clientWidth  : window.innerWidth;
+    const vh = el ? el.clientHeight : window.innerHeight;
+    const z  = this.zoomLevel();
+    // World div = 300% × 300% of the lounge-viewport, centred via top:-100% left:-100%.
+    // After scale(z): world half-width in screen px = 1.5 * z * vw
+    // Viewport half-width in screen px               = 0.5 * vw
+    // Max pan before edge of world aligns with edge of viewport:
+    //   maxPan = (1.5z - 0.5) * vw
+    const mx = Math.max(0, (1.5 * z - 0.5) * vw);
+    const my = Math.max(0, (1.5 * z - 0.5) * vh);
+    return { x: mx, y: my };
+  }
+
+  private clampPan(x: number, y: number): { x: number; y: number } {
+    const { x: mx, y: my } = this.maxPan;
+    return {
+      x: Math.max(-mx, Math.min(mx, x)),
+      y: Math.max(-my, Math.min(my, y)),
+    };
+  }
+
+  worldTransform = computed(() => {
+    const scale = this.zoomLevel();
+    const tx = this.panX();
+    const ty = this.panY();
+    // translate() is in the element's pre-scale coordinate space.
+    // screen displacement = translate_val * scale, so to get tx screen px: tx / scale.
+    // BUT transform-origin is 50%/50% of the world div (which is 300%×300%),
+    // so we use translateX in world coords = panX / scale.
+    return `scale(${scale}) translate(${tx / scale}px, ${ty / scale}px)`;
+  });
+
+  /* ── Pinch-to-zoom state ───────────────────────────── */
+  private pinching = false;
+  private pinchStartDist = 0;
+  private pinchStartZoom = 0;
+
+  private getTouchDist(e: TouchEvent): number {
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  onMapTouchStart(e: TouchEvent) {
+    if (e.touches.length === 2) {
+      // Pinch start
+      this.pinching = true;
+      this.mapPanning = false;
+      this.pinchStartDist = this.getTouchDist(e);
+      this.pinchStartZoom = this.zoomLevel();
+      return;
+    }
+    // Only start pan if not touching an avatar node
+    if ((e.target as HTMLElement).closest('.avatar-node')) return;
+    if (e.touches.length !== 1) return;
+    this.pinching = false;
+    this.mapPanning = true;
+    this.mapPanStartX = e.touches[0].clientX;
+    this.mapPanStartY = e.touches[0].clientY;
+    this.mapPanOriginX = this.panX();
+    this.mapPanOriginY = this.panY();
+  }
+  onMapTouchMove(e: TouchEvent) {
+    if (e.touches.length === 2 && this.pinching) {
+      e.preventDefault();
+      const dist = this.getTouchDist(e);
+      const ratio = dist / this.pinchStartDist;
+      const next = Math.min(this.MAX_ZOOM, Math.max(this.MIN_ZOOM,
+        Math.round(this.pinchStartZoom * ratio * 100) / 100));
+      this.zoomLevel.set(next);
+      // Re-clamp pan to new zoom bounds
+      const clamped = this.clampPan(this.panX(), this.panY());
+      this.panX.set(clamped.x);
+      this.panY.set(clamped.y);
+      return;
+    }
+    if (!this.mapPanning || e.touches.length !== 1) return;
+    e.preventDefault();
+    const dx = e.touches[0].clientX - this.mapPanStartX;
+    const dy = e.touches[0].clientY - this.mapPanStartY;
+    const clamped = this.clampPan(this.mapPanOriginX + dx, this.mapPanOriginY + dy);
+    this.panX.set(clamped.x);
+    this.panY.set(clamped.y);
+  }
+  onMapTouchEnd(e: TouchEvent) {
+    if (e.touches.length < 2) this.pinching = false;
+    if (e.touches.length === 0) this.mapPanning = false;
+  }
+
+  recenterMap() {
+    this.panX.set(0);
+    this.panY.set(0);
+  }
+
+  /* ── Layer picker ──────────────────────────────────── */
+  showLayerPicker = signal(false);
+
+  bgOptions = [
+    { id: 'map',       name: 'City Map',     type: 'map',      value: '',                                                                          preview: '#1a1a2e' },
+    { id: 'none',      name: 'Dark',         type: 'color',    value: '#090912',                                                                   preview: '#090912' },
+    { id: 'midnight',  name: 'Midnight',     type: 'gradient', value: 'linear-gradient(135deg,#0f0c29,#302b63,#24243e)',                           preview: 'linear-gradient(135deg,#0f0c29,#302b63,#24243e)' },
+    { id: 'aurora',    name: 'Aurora',       type: 'gradient', value: 'linear-gradient(135deg,#0a0a14 0%,#1a0a2e 40%,#0a1a2e 100%)',              preview: 'linear-gradient(135deg,#0a0a14,#1a0a2e,#0a1a2e)' },
+    { id: 'neon',      name: 'Neon City',    type: 'gradient', value: 'linear-gradient(160deg,#0d0221 0%,#1b1033 50%,#0d1b2a 100%)',              preview: 'linear-gradient(160deg,#0d0221,#1b1033,#0d1b2a)' },
+    { id: 'forest',    name: 'Forest',       type: 'gradient', value: 'linear-gradient(135deg,#0a1a0a 0%,#0d2b1a 50%,#0a0d14 100%)',              preview: 'linear-gradient(135deg,#0a1a0a,#0d2b1a,#0a0d14)' },
+  ];
+
+  selectedBg = signal(this.bgOptions[0]);
+
+  selectBg(bg: typeof this.bgOptions[0]) {
+    this.selectedBg.set(bg);
+    this.showLayerPicker.set(false);
+  }
+
+  /* ── Event alert swipe state ─────────────────────────── */
+  showEventAlert = signal(true);
+  eventSwipeX    = signal(0);
+  eventCardOpacity = computed(() => {
+    const x = this.eventSwipeX();
+    if (x >= 0) return 1;
+    return Math.max(0, 1 + x / 120);
+  });
+
+  private swipeTouchStartX = 0;
+  private swipeTouchCurrentX = 0;
+
+  /* ── Profile sheet swipe-down-to-close ──────────────── */
+  sheetDragY    = signal(0);
+  sheetDragging = false;
+  private sheetTouchStartY = 0;
+
+  onSheetTouchStart(e: TouchEvent) {
+    this.sheetTouchStartY = e.touches[0].clientY;
+    this.sheetDragging = true;
+  }
+  onSheetTouchMove(e: TouchEvent) {
+    const delta = e.touches[0].clientY - this.sheetTouchStartY;
+    if (delta > 0) {
+      e.stopPropagation();
+      this.sheetDragY.set(delta);
+    }
+  }
+  onSheetTouchEnd(_e: TouchEvent) {
+    this.sheetDragging = false;
+    if (this.sheetDragY() > 80) {
+      this.peekedUser.set(null);
+    }
+    this.sheetDragY.set(0);
+  }
+
+  onEventTouchStart(e: TouchEvent) {
+    this.swipeTouchStartX = e.touches[0].clientX;
+  }
+  onEventTouchMove(e: TouchEvent) {
+    const delta = e.touches[0].clientX - this.swipeTouchStartX;
+    if (delta < 0) this.eventSwipeX.set(delta);
+  }
+  onEventTouchEnd(_e: TouchEvent) {
+    if (this.eventSwipeX() < -80) {
+      this.showEventAlert.set(false);
+      this.eventSwipeX.set(0);
+    } else {
+      this.eventSwipeX.set(0);
+    }
+  }
+
+  /* ── Event timer ─────────────────────────────────────── */
+  eventTimer = '04:22';
+  private timerInterval?: ReturnType<typeof setInterval>;
+  private timerSeconds = 4 * 60 + 22;
+
+  /* ── Vibe from route ─────────────────────────────────── */
+  currentVibe = 'CHILL';
+  currentVibeEmoji = '😌';
+  private vibeEmojiMap: Record<string, string> = {
+    'hyped': '🔥', 'chill': '😌', 'lonely': '💜',
+    'lets-play': '🎮', 'need-to-talk': '🗣️', 'just-vibing': '👻'
+  };
+
+  /* ── Confess state ─────────────────────────────────────── */
   confessText  = '';
   confessAnon  = signal(true);
   selectedMood = signal('heartbroken');
@@ -601,44 +1051,33 @@ export class ZoneComponent implements OnInit, OnDestroy {
       text:"I quit my job today without a backup plan. Terrified but also weirdly free? Told no one. You're the first to know." }
   ]);
 
-  /* ── Lounge users ──────────────────────────────────── */
-  /*
-    wx/wy are world % positions (0-100).
-    world = 300%×300% div, so world 50%/50% = viewport center.
-    Ring 1 (±8-12%):  visible at default zoom 0.65
-    Ring 2 (±18-23%): visible at default zoom 0.65 (near edge)
-    Ring 3 (±30-38%): visible only when zoomed out ≤ 0.48
-  */
+  /* ── Lounge users ──────────────────────────────────────── */
   loungeUsers = signal<LoungeUser[]>([
-    // ── ME ── always center
-    { id:'me', name:'NOVA_STREAM', avatarEmoji:'👩‍🎤', ringColor:'#c084fc',
+    { id:'me', name:'NOVA_STREAM', avatarEmoji:'', gender:'f', ringColor:'#c084fc',
       activityEmoji:'', nameStyle:'pill', nameColor:'white',
       wx:50, wy:50, size:'lg', isMe:true, ring:1 },
-    // ── Ring 1 (near) ──
-    { id:'u1', name:'ZANDER_9X',  avatarEmoji:'🧑',   ringColor:'#7c3aed',
+    { id:'u1', name:'ZANDER_9X',  avatarEmoji:'', gender:'m', ringColor:'#7c3aed',
       activityEmoji:'🎮', nameStyle:'text', nameColor:'#a78bfa',
       wx:40, wy:41, size:'md', isMe:false, ring:1 },
-    { id:'u2', name:'KAI_GHOST',  avatarEmoji:'🧑‍💻', ringColor:'#10b981',
+    { id:'u2', name:'KAI_GHOST',  avatarEmoji:'', gender:'f', ringColor:'#10b981',
       activityEmoji:'🔥', nameStyle:'text', nameColor:'#34d399',
       wx:61, wy:40, size:'sm', isMe:false, ring:1 },
-    // ── Ring 2 (medium) ──
-    { id:'u3', name:'SOL_RUNNER', avatarEmoji:'🧔',   ringColor:'#06b6d4',
+    { id:'u3', name:'SOL_RUNNER', avatarEmoji:'', gender:'m', ringColor:'#06b6d4',
       activityEmoji:'🎵', nameStyle:'text', nameColor:'#67e8f9',
       wx:30, wy:60, size:'sm', isMe:false, ring:2 },
-    { id:'u4', name:'MOCHI_BABE', avatarEmoji:'👩',   ringColor:'#ec4899',
+    { id:'u4', name:'MOCHI_BABE', avatarEmoji:'', gender:'f', ringColor:'#ec4899',
       activityEmoji:'✨', nameStyle:'text', nameColor:'#f9a8d4',
       wx:68, wy:57, size:'sm', isMe:false, ring:2 },
-    { id:'u5', name:'DRIFT_X',    avatarEmoji:'🧑‍🚀', ringColor:'#f59e0b',
+    { id:'u5', name:'DRIFT_X',    avatarEmoji:'', gender:'m', ringColor:'#f59e0b',
       activityEmoji:'🎯', nameStyle:'text', nameColor:'#fcd34d',
       wx:47, wy:68, size:'sm', isMe:false, ring:2 },
-    // ── Ring 3 (far — only visible when zoomed out) ──
-    { id:'u6', name:'NIGHT_OWL',  avatarEmoji:'🦉',   ringColor:'#8b5cf6',
+    { id:'u6', name:'NIGHT_OWL',  avatarEmoji:'', gender:'f', ringColor:'#8b5cf6',
       activityEmoji:'🌙', nameStyle:'text', nameColor:'#c4b5fd',
       wx:19, wy:37, size:'sm', isMe:false, ring:3 },
-    { id:'u7', name:'PIXEL_WAVE', avatarEmoji:'🎧',   ringColor:'#22d3ee',
+    { id:'u7', name:'PIXEL_WAVE', avatarEmoji:'', gender:'m', ringColor:'#22d3ee',
       activityEmoji:'🎶', nameStyle:'text', nameColor:'#67e8f9',
       wx:73, wy:28, size:'sm', isMe:false, ring:3 },
-    { id:'u8', name:'GHOST_RUN',  avatarEmoji:'👻',   ringColor:'#a3e635',
+    { id:'u8', name:'GHOST_RUN',  avatarEmoji:'', gender:'f', ringColor:'#a3e635',
       activityEmoji:'💨', nameStyle:'text', nameColor:'#bef264',
       wx:42, wy:76, size:'sm', isMe:false, ring:3 },
   ]);
@@ -652,18 +1091,44 @@ export class ZoneComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
+    this.viewportEl = document.querySelector('.lounge-viewport') as HTMLElement;
     const zoneId = this.route.snapshot.params['id'];
     const found  = this.zoneService.mockZones.find(z => z.id === zoneId);
     this.zone.set(found || this.zoneService.mockZones[0]);
+
+    // Read vibe from query params
+    const vibe = this.route.snapshot.queryParamMap.get('vibe');
+    if (vibe) {
+      this.currentVibe = vibe.toUpperCase().replace('-', ' ');
+      this.currentVibeEmoji = this.vibeEmojiMap[vibe] || '✨';
+    }
+
     this.countTimer = setInterval(() =>
       this.playerCount.set(38 + Math.floor(Math.random() * 10)), 7000);
+
+    // Countdown timer for event alert
+    this.timerInterval = setInterval(() => {
+      if (this.timerSeconds > 0) {
+        this.timerSeconds--;
+        const m = Math.floor(this.timerSeconds / 60);
+        const s = this.timerSeconds % 60;
+        this.eventTimer = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+      }
+    }, 1000);
   }
 
-  ngOnDestroy() { if (this.countTimer) clearInterval(this.countTimer); }
+  ngOnDestroy() {
+    if (this.countTimer) clearInterval(this.countTimer);
+    if (this.timerInterval) clearInterval(this.timerInterval);
+  }
 
   adjustZoom(delta: number) {
     const next = Math.min(this.MAX_ZOOM, Math.max(this.MIN_ZOOM, this.zoomLevel() + delta));
     this.zoomLevel.set(Math.round(next * 100) / 100);
+    // Re-clamp pan to the new zoom's bounds
+    const clamped = this.clampPan(this.panX(), this.panY());
+    this.panX.set(clamped.x);
+    this.panY.set(clamped.y);
   }
 
   openProfile(u: LoungeUser) {
@@ -675,7 +1140,6 @@ export class ZoneComponent implements OnInit, OnDestroy {
     const zoneId = this.route.snapshot.params['id'] || 'zone_001';
     if (tab === 'games') this.router.navigate(['/app/games'],  { queryParams: { fromZone: zoneId } });
     if (tab === 'vibe')  this.router.navigate(['/app/vibes'],  { queryParams: { fromZone: zoneId } });
-    // 'confess' and 'lounge' — handled in-place, no navigation
   }
 
   leaveZone() {
