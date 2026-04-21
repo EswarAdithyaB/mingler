@@ -28,6 +28,15 @@ interface ConfessionPost {
   text: string; revealed: boolean; mood: string;
 }
 
+interface LobbyCard {
+  id: string; status: 'active' | 'waiting' | 'new'; statusLabel: string;
+  title: string; players: number; maxPlayers: number;
+  host?: string; isOpen?: boolean; startNote?: string;
+  bgGradient: string; bgEmoji: string;
+  action: 'join-match' | 'join-room' | 'register';
+  svgCard?: boolean;
+}
+
 @Component({
   selector: 'app-zone',
   standalone: true,
@@ -114,8 +123,12 @@ interface ConfessionPost {
             <div class="event-card-inner">
               <div class="event-top-row">
                 <div class="event-alert-pill">
-                  <span class="event-dot"></span>
-                  EVENT ALERT
+                  <svg width="20" height="16" viewBox="0 0 20 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M16 9V7H20V9H16ZM17.2 16L14 13.6L15.2 12L18.4 14.4L17.2 16ZM15.2 4L14 2.4L17.2 0L18.4 1.6L15.2 4ZM3 15V11H2C1.45 11 0.979167 10.8042 0.5875 10.4125C0.195833 10.0208 0 9.55 0 9V7C0 6.45 0.195833 5.97917 0.5875 5.5875C0.979167 5.19583 1.45 5 2 5H6L11 2V14L6 11H5V15H3ZM12 11.35V4.65C12.45 5.05 12.8125 5.5375 13.0875 6.1125C13.3625 6.6875 13.5 7.31667 13.5 8C13.5 8.68333 13.3625 9.3125 13.0875 9.8875C12.8125 10.4625 12.45 10.95 12 11.35Z" fill="#AFA2FF"/>
+                  </svg>
+                  <svg width="68" height="16" viewBox="0 0 68 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M0.792 12V3.6H6.192V5.04H2.376V7.044H5.856V8.484H2.376V10.56H6.264V12H0.792ZM8.4 12L6.264 3.6H7.896L9.672 10.98H9.84L11.616 3.6H13.248L11.112 12H8.4ZM13.656 12V3.6H19.056V5.04H15.24V7.044H18.72V8.484H15.24V10.56H19.128V12H13.656ZM19.704 12V3.6H22.716L24.384 10.92H24.6V3.6H26.16V12H23.148L21.48 4.68H21.264V12H19.704ZM29.088 12V5.04H26.64V3.6H33.12V5.04H30.672V12H29.088ZM34.968 12L37.176 3.6H39.936L42.144 12H40.512L40.056 10.152H37.056L36.6 12H34.968ZM37.428 8.688H39.684L38.664 4.596H38.448L37.428 8.688ZM42.552 12V3.6H44.136V10.56H47.976V12H42.552ZM48.456 12V3.6H53.856V5.04H50.04V7.044H53.52V8.484H50.04V10.56H53.928V12H48.456ZM54.504 12V3.6H58.152C58.68 3.6 59.14 3.692 59.532 3.876C59.924 4.06 60.228 4.32 60.444 4.656C60.66 4.992 60.768 5.388 60.768 5.844V5.988C60.768 6.492 60.648 6.9 60.408 7.212C60.168 7.524 59.872 7.752 59.52 7.896V8.112C59.84 8.128 60.088 8.238 60.264 8.442C60.44 8.646 60.528 8.916 60.528 9.252V12H58.944V9.48C58.944 9.288 58.894 9.132 58.794 9.012C58.694 8.892 58.528 8.832 58.296 8.832H56.088V12H54.504ZM56.088 7.392H57.984C58.36 7.392 58.654 7.29 58.866 7.086C59.078 6.882 59.184 6.612 59.184 6.276V6.156C59.184 5.82 59.08 5.55 58.872 5.346C58.664 5.142 58.368 5.04 57.984 5.04H56.088V7.392ZM63.288 12V5.04H60.84V3.6H67.32V5.04H64.872V12H63.288Z" fill="white"/>
+                  </svg>
                 </div>
                 <span class="event-timer">{{ eventTimer }}</span>
               </div>
@@ -297,6 +310,75 @@ interface ConfessionPost {
         </div>
       }
 
+      <!-- ══ GAMES OVERLAY ════════════════════════════════════ -->
+      @if (activeAction() === 'games') {
+      <div class="games-overlay">
+        <div class="games-hdr">
+          <div class="games-hdr-left">
+            <div class="live-pill-sm">
+              <span class="live-dot-sm"></span>
+              <span class="live-label-sm">LIVE LOBBY</span>
+            </div>
+            <span class="games-hdr-title">Games in This Zone</span>
+          </div>
+          <button class="games-up-btn" (click)="activeAction.set('lounge')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M12 4L4 12M12 4L20 12M12 4V20" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="games-body">
+          @for (card of lobbyCards(); track card.id) {
+            <div class="g-card" [class.g-svg-card]="card.svgCard">
+              @if (card.svgCard) {
+                <div class="g-svg-wrap">
+                  <div class="g-svg-bg"></div>
+                  <button class="g-svg-btn" (click)="joinCard(card)"></button>
+                </div>
+              } @else {
+                <div class="g-banner" [style.background]="card.bgGradient">
+                  <span class="g-emoji">{{ card.bgEmoji }}</span>
+                  <div class="g-badge" [class]="'g-badge-' + card.status">
+                    @if (card.status === 'active') { <span class="g-dot"></span> }
+                    {{ card.statusLabel }}
+                  </div>
+                </div>
+                <div class="g-body">
+                  <div class="g-title-row">
+                    <span class="g-title">{{ card.title }}</span>
+                    <span class="g-count">{{ card.players }}/{{ card.maxPlayers }}</span>
+                  </div>
+                  @if (card.host) {
+                    <div class="g-host-row">
+                      <span class="g-host-label">HOST</span>
+                      <span class="g-host-name">{{ card.host }}</span>
+                    </div>
+                  }
+                  @if (card.startNote) {
+                    <div class="g-note-row">
+                      @if (card.isOpen) { <span class="g-open-badge">OPEN</span> }
+                      <span class="g-note">{{ card.startNote }}</span>
+                    </div>
+                  }
+                  @if (card.action === 'join-match') {
+                    <button class="g-btn g-btn-join" (click)="joinCard(card)">JOIN MATCH</button>
+                  } @else if (card.action === 'join-room') {
+                    <button class="g-btn g-btn-room" (click)="joinCard(card)">JOIN ROOM</button>
+                  } @else {
+                    <button class="g-btn g-btn-reg" (click)="joinCard(card)">REGISTER</button>
+                  }
+                </div>
+              }
+            </div>
+          }
+          <button class="g-create-btn">
+            <span class="g-create-plus">+</span> Create Game
+          </button>
+          <div style="height:24px"></div>
+        </div>
+      </div>
+      } <!-- /games-overlay -->
+
       <!-- ══ PROFILE PEEK SHEET ════════════════════════════════ -->
       @if (peekedUser()) {
         <div class="sheet-backdrop" (click)="peekedUser.set(null)">
@@ -335,7 +417,7 @@ interface ConfessionPost {
       background: #090912; position: relative; overflow: hidden;
     }
 
-    /* ══ LOUNGE VIEWPORT — full remaining height ══════════════ */
+    /* ══ LOUNGE VIEWPORT ═════════════════════════════════════ */
     .lounge-viewport {
       flex: 1; min-height: 0; position: relative; overflow: hidden;
     }
@@ -502,9 +584,8 @@ interface ConfessionPost {
       font-size: 9px; font-weight: 800; letter-spacing: 1px;
       color: #FBB03B;
     }
-    .event-dot {
-      width: 6px; height: 6px; border-radius: 50%; background: #FBB03B;
-      box-shadow: 0 0 6px #FBB03B; animation: pill-blink 1.2s infinite;
+    .event-alert-pill svg {
+      flex-shrink: 0;
     }
     .event-timer {
       font-size: 12px; font-weight: 800; color: white; letter-spacing: 0.5px;
@@ -799,6 +880,99 @@ interface ConfessionPost {
     .sheet-actions{display:flex;gap:12px;margin-top:8px;width:100%}
     .sheet-actions .btn{flex:1}
 
+    /* ══ GAMES OVERLAY ════════════════════════════════════════ */
+    .games-overlay {
+      position: absolute; inset: 0; z-index: 40;
+      background: #0d0b1e;
+      display: flex; flex-direction: column;
+      animation: slide-up 0.32s cubic-bezier(0.16,1,0.3,1) both;
+    }
+    .games-hdr {
+      flex-shrink: 0; display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 18px; background: rgba(18,15,38,0.95);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .games-hdr-left { display: flex; flex-direction: column; gap: 2px; }
+    .live-pill-sm { display: flex; align-items: center; gap: 5px; }
+    .live-dot-sm {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #22C55E; box-shadow: 0 0 6px #22C55E;
+      animation: pill-blink 1.4s infinite;
+    }
+    .live-label-sm { font-size: 9px; font-weight: 700; letter-spacing: 1.2px; color: #22C55E; }
+    .games-hdr-title { font-size: 15px; font-weight: 700; color: white; }
+    .games-up-btn {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
+      display: flex; align-items: center; justify-content: center; cursor: pointer;
+    }
+    .games-body {
+      flex: 1; min-height: 0; overflow-y: auto;
+      padding: 14px 16px;
+      display: flex; flex-direction: column; gap: 14px;
+      scrollbar-width: none;
+      &::-webkit-scrollbar { display: none; }
+    }
+    .g-create-btn {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; padding: 14px;
+      background: #12112A; border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px; color: white;
+      font-size: 14px; font-weight: 700; cursor: pointer;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    }
+    .g-create-plus { font-size: 18px; font-weight: 400; }
+
+    /* game cards */
+    .g-card {
+      border-radius: 16px; overflow: hidden;
+      background: #12112A; border: 1px solid rgba(255,255,255,0.07);
+    }
+    .g-svg-card { background: transparent; border: none; overflow: visible; }
+    .g-svg-wrap { position: relative; border-radius: 16px; overflow: hidden; }
+    .g-svg-bg {
+      width: 100%; aspect-ratio: 342 / 390;
+      background-image: url('../../../assets/ludo.svg');
+      background-size: 100% 100%; background-repeat: no-repeat;
+    }
+    .g-svg-btn {
+      position: absolute; bottom: 0; left: 0; right: 0; height: 68px;
+      background: transparent; border: none; cursor: pointer;
+    }
+    .g-banner {
+      position: relative; height: 130px;
+      display: flex; align-items: center; justify-content: center; overflow: hidden;
+    }
+    .g-emoji { font-size: 70px; opacity: 0.5; }
+    .g-badge {
+      position: absolute; top: 10px; left: 10px;
+      display: flex; align-items: center; gap: 4px;
+      border-radius: 20px; padding: 3px 9px;
+      font-size: 9px; font-weight: 800; letter-spacing: 1px;
+    }
+    .g-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; animation: pill-blink 1.4s infinite; }
+    .g-badge-active  { background: rgba(34,197,94,0.15);  color: #22C55E; border: 1px solid rgba(34,197,94,0.3); }
+    .g-badge-waiting { background: rgba(251,191,36,0.15); color: #FBBF24; border: 1px solid rgba(251,191,36,0.3); }
+    .g-badge-new     { background: rgba(255,110,132,0.15);color: #FF6E84; border: 1px solid rgba(255,110,132,0.3); }
+    .g-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 8px; }
+    .g-title-row { display: flex; align-items: center; justify-content: space-between; }
+    .g-title { font-size: 15px; font-weight: 700; color: white; }
+    .g-count { font-size: 11px; color: #AAA8C3; font-weight: 600; }
+    .g-host-row { display: flex; align-items: center; gap: 6px; }
+    .g-host-label { font-size: 9px; font-weight: 800; letter-spacing: 1px; color: #AAA8C3; }
+    .g-host-name { font-size: 12px; font-weight: 600; color: white; }
+    .g-note-row { display: flex; align-items: center; gap: 6px; }
+    .g-open-badge { font-size: 9px; font-weight: 800; letter-spacing: 1px; color: #22C55E; border: 1px solid #22C55E; border-radius: 4px; padding: 2px 5px; }
+    .g-note { font-size: 11px; color: #AAA8C3; }
+    .g-btn {
+      width: 100%; border-radius: 10px; padding: 11px;
+      font-size: 11px; font-weight: 800; letter-spacing: 1px;
+      cursor: pointer; border: none; &:active { transform: scale(0.97); }
+    }
+    .g-btn-join { background: linear-gradient(135deg,#7B61FF,#5B21B6); color: white; box-shadow: 0 4px 14px rgba(123,97,255,0.35); }
+    .g-btn-room { background: rgba(255,255,255,0.06); color: white; border: 1px solid rgba(255,255,255,0.12) !important; }
+    .g-btn-reg  { background: transparent; color: #22C55E; border: 1.5px solid #22C55E !important; }
+
     /* shared btn styles */
     .btn {
       padding: 12px 16px; border-radius: 12px; border: none;
@@ -814,6 +988,7 @@ interface ConfessionPost {
   `]
 })
 export class ZoneComponent implements OnInit, OnDestroy {
+
   readonly MIN_ZOOM = 0.35;
   readonly MAX_ZOOM = 1.05;
 
@@ -1082,6 +1257,35 @@ export class ZoneComponent implements OnInit, OnDestroy {
       wx:42, wy:76, size:'sm', isMe:false, ring:3 },
   ]);
 
+  lobbyCards = signal<LobbyCard[]>([
+    {
+      id: 'c1', status: 'active', statusLabel: 'ACTIVE',
+      title: 'Ludo Masters', players: 3, maxPlayers: 4,
+      bgGradient: 'linear-gradient(135deg, #1a1040 0%, #2d1b5e 50%, #1a1040 100%)',
+      bgEmoji: '🎲', action: 'join-match', svgCard: true
+    },
+    {
+      id: 'c2', status: 'waiting', statusLabel: 'WAITING',
+      title: 'Puzzle Solvers', players: 1, maxPlayers: 2,
+      host: 'NeoWalker_01',
+      bgGradient: 'linear-gradient(135deg, #1a1228 0%, #2a1f3d 50%, #1a1228 100%)',
+      bgEmoji: '🧩', action: 'join-room'
+    },
+    {
+      id: 'c3', status: 'new', statusLabel: 'NEW LOBBY',
+      title: 'Blitz Tournament', players: 0, maxPlayers: 8,
+      isOpen: true, startNote: 'Starts in 15 mins. Limited seats remaining.',
+      bgGradient: 'linear-gradient(135deg, #0f1a0f 0%, #1a2d10 50%, #0f1a0f 100%)',
+      bgEmoji: '♟️', action: 'register'
+    }
+  ]);
+
+  joinCard(card: LobbyCard) {
+    this.lobbyCards.update(cards =>
+      cards.map(c => c.id === card.id ? { ...c, players: c.players + 1 } : c)
+    );
+  }
+
   private countTimer?: ReturnType<typeof setInterval>;
 
   constructor(
@@ -1138,8 +1342,7 @@ export class ZoneComponent implements OnInit, OnDestroy {
   setAction(tab: ActionTab) {
     this.activeAction.set(tab);
     const zoneId = this.route.snapshot.params['id'] || 'zone_001';
-    if (tab === 'games') this.router.navigate(['/app/games'],  { queryParams: { fromZone: zoneId } });
-    if (tab === 'vibe')  this.router.navigate(['/app/vibes'],  { queryParams: { fromZone: zoneId } });
+    if (tab === 'vibe') this.router.navigate(['/app/vibes'], { queryParams: { fromZone: zoneId } });
   }
 
   leaveZone() {
