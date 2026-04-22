@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard, guestGuard } from './core/guards/auth.guard';
+import { zoneGuard } from './core/guards/zone.guard';
 
 export const routes: Routes = [
   {
@@ -49,10 +50,12 @@ export const routes: Routes = [
       },
       {
         path: 'vibes',
+        canActivate: [zoneGuard],
         loadComponent: () => import('./features/vibe-feed/vibe-feed.component').then(m => m.VibeFeedComponent)
       },
       {
         path: 'games',
+        canActivate: [zoneGuard],
         loadComponent: () => import('./features/games/games.component').then(m => m.GamesComponent)
       },
       {
@@ -62,6 +65,10 @@ export const routes: Routes = [
       {
         path: 'settings',
         loadComponent: () => import('./features/settings/settings.component').then(m => m.SettingsComponent)
+      },
+      {
+        path: 'profile',
+        loadComponent: () => import('./features/profile/profile.component').then(m => m.ProfileComponent)
       }
     ]
   },

@@ -1,7 +1,9 @@
-import { Component, OnInit, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { Component, OnInit, OnDestroy, signal } from '@angular/core';
+import { Router, ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { Subscription } from 'rxjs';
 import { ZoneService } from '../../core/services/zone.service';
+import { ZoneSessionService } from '../../core/services/zone-session.service';
 import { Zone } from '../../core/models';
 
 @Component({
@@ -25,6 +27,24 @@ import { Zone } from '../../core/models';
           </button>
         </div>
       </div>
+
+      <!-- ── Zone warning banner ───────────────────────────── -->
+      @if (warningBanner()) {
+        <div class="zone-warning-banner" (click)="dismissWarning()">
+          <span class="warn-icon">⚠️</span>
+          <span class="warn-text">{{ warningBanner() }}</span>
+          <button class="warn-close">✕</button>
+        </div>
+      }
+
+      <!-- ── Active zone pill (session exists) ─────────────── -->
+      @if (hasActiveSession()) {
+        <div class="active-zone-pill" (click)="resumeZone()">
+          <span class="azp-dot"></span>
+          <span class="azp-text">Back to <strong>{{ activeZoneName() }}</strong></span>
+          <span class="azp-arrow">›</span>
+        </div>
+      }
 
       <!-- ── Map Canvas (fills all remaining vertical space) ── -->
       <div class="map-area">
@@ -552,26 +572,98 @@ import { Zone } from '../../core/models';
       box-shadow: 0 4px 20px rgba(123,97,255,0.4);
       &:active { transform: scale(0.97); }
     }
+
+    /* ── Zone warning banner ────────────────────────────────── */
+    .zone-warning-banner {
+      flex-shrink: 0;
+      display: flex; align-items: center; gap: 10px;
+      background: rgba(239,68,68,0.15);
+      border-bottom: 1px solid rgba(239,68,68,0.35);
+      padding: 10px 20px;
+      cursor: pointer;
+      animation: slide-down 0.3s ease;
+    }
+    .warn-icon { font-size: 16px; flex-shrink: 0; }
+    .warn-text { flex: 1; font-size: 13px; font-weight: 500; color: #fca5a5; line-height: 1.4; }
+    .warn-close {
+      background: none; border: none; color: #fca5a5; font-size: 14px;
+      cursor: pointer; padding: 0 4px; flex-shrink: 0;
+    }
+    @keyframes slide-down {
+      from { transform: translateY(-100%); opacity: 0; }
+      to   { transform: translateY(0);     opacity: 1; }
+    }
+
+    /* ── Active zone pill ───────────────────────────────────── */
+    .active-zone-pill {
+      flex-shrink: 0;
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(124,58,237,0.18);
+      border-bottom: 1px solid rgba(124,58,237,0.3);
+      padding: 10px 20px;
+      cursor: pointer;
+      transition: background 0.2s;
+      &:active { background: rgba(124,58,237,0.3); }
+    }
+    .azp-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #22c55e; box-shadow: 0 0 8px rgba(34,197,94,0.8);
+      flex-shrink: 0; animation: blink 1.5s ease-in-out infinite;
+    }
+    @keyframes blink {
+      0%,100% { opacity: 1; } 50% { opacity: 0.4; }
+    }
+    .azp-text { flex: 1; font-size: 13px; color: rgba(255,255,255,0.8); }
+    .azp-text strong { color: #c4b5fd; font-weight: 700; }
+    .azp-arrow { font-size: 18px; color: #a78bfa; }
   `]
 })
-export class MapComponent implements OnInit {
-  loading      = signal(true);
-  zones        = signal<Zone[]>([]);
-  selectedZone = signal<Zone | null>(null);
-  locationName = signal('Detecting...');
+export class MapComponent implements OnInit, OnDestroy {
+  private paramSub?: Subscription;
+  loading       = signal(true);
+  zones         = signal<Zone[]>([]);
+  selectedZone  = signal<Zone | null>(null);
+  locationName  = signal('Detecting...');
   panelExpanded = signal(false);
+  warningBanner = signal<string | null>(null);
 
-  constructor(private zoneService: ZoneService, private router: Router) {}
+  /** Expose session state to template */
+  hasActiveSession = this.zoneSession.isInZone;
+  activeZoneName   = this.zoneSession.activeZoneName;
+
+  constructor(
+    private zoneService:  ZoneService,
+    private zoneSession:  ZoneSessionService,
+    private router:       Router,
+    private route:        ActivatedRoute
+  ) {}
 
   ngOnInit() {
+    // Subscribe to queryParams as an observable so we catch params even when
+    // Angular reuses this component (user is already on /app/map and guard
+    // redirects back with ?noZone=1 — ngOnInit wouldn't re-fire otherwise)
+    this.paramSub = this.route.queryParams.subscribe(params => {
+      if (params['sessionExpired'] === '1') {
+        this.warningBanner.set('Your zone session expired due to inactivity. Enter a zone to continue.');
+        // Strip the flag from the URL cleanly
+        this.router.navigate([], { replaceUrl: true, queryParams: {} });
+      } else if (params['noZone'] === '1') {
+        this.warningBanner.set('You need to be inside a zone to access Games or Vibes. Tap ENTER ZONE first.');
+        this.router.navigate([], { replaceUrl: true, queryParams: {} });
+      }
+    });
+
     this.zoneService.loadNearbyZones();
     setTimeout(() => {
       this.loading.set(false);
       this.zones.set(this.zoneService.mockZones);
       this.locationName.set('Hyderabad, IN');
-      // Briefly delay so the sheet entrance animation is visible
       setTimeout(() => this.panelExpanded.set(true), 300);
     }, 1200);
+  }
+
+  ngOnDestroy() {
+    this.paramSub?.unsubscribe();
   }
 
   refreshZones() {
@@ -616,9 +708,20 @@ export class MapComponent implements OnInit {
   enterZone(zone: Zone, event: Event) {
     event.stopPropagation();
     this.zoneService.joinZone(zone);
-    this.router.navigate(['/app/vibe-check', zone.id], {
+    // Zone session is saved in ZoneEntryComponent after the loading animation
+    this.router.navigate(['/app/zone-entry', zone.id], {
       queryParams: { name: zone.name }
     });
+  }
+
+  /** Resume navigating back into the active zone (session already exists) */
+  resumeZone(): void {
+    const id = this.zoneSession.activeZoneId();
+    if (id) this.router.navigate(['/app/zone', id]);
+  }
+
+  dismissWarning(): void {
+    this.warningBanner.set(null);
   }
 
   createZone() { /* open modal */ }

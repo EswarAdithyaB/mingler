@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { ZoneSessionService } from '../../core/services/zone-session.service';
 
 const STEPS = [
   'Syncing your avatar...',
@@ -257,7 +258,11 @@ export class ZoneEntryComponent implements OnInit, OnDestroy {
 
   private timers: ReturnType<typeof setTimeout>[] = [];
 
-  constructor(private route: ActivatedRoute, private router: Router) {}
+  constructor(
+    private route: ActivatedRoute,
+    private router: Router,
+    private zoneSession: ZoneSessionService
+  ) {}
 
   ngOnInit() {
     // Read zone name from route params or query
@@ -281,9 +286,12 @@ export class ZoneEntryComponent implements OnInit, OnDestroy {
     schedule(() => { this.progress.set(90); this.currentStep.set(STEPS[3]); }, 2600);
     schedule(() => { this.progress.set(100); },                                3100);
 
-    // Navigate away once 100% is reached
+    // Navigate away once 100% is reached — also save zone session
     schedule(() => {
-      const zoneId = this.route.snapshot.paramMap.get('id') || 'zone_001';
+      const zoneId   = this.route.snapshot.paramMap.get('id') || 'zone_001';
+      const zoneName = this.route.snapshot.queryParamMap.get('name') || this.zoneName;
+      // Persist the session so guards and map can detect it
+      this.zoneSession.enterZone(zoneId, decodeURIComponent(zoneName));
       this.router.navigate(['/app/zone', zoneId]);
     }, 3600);
   }

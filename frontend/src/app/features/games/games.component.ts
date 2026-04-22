@@ -1,7 +1,8 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Game } from '../../core/models';
+import { ZoneSessionService } from '../../core/services/zone-session.service';
 
 @Component({
   selector: 'app-games',
@@ -16,7 +17,7 @@ import { Game } from '../../core/models';
         } @else {
           <div class="header-icon-btn">⊞</div>
         }
-        <h3 class="header-title">Games in This Zone</h3>
+        <h3 class="header-title">{{ zoneName() ? 'Games · ' + zoneName() : 'Games' }}</h3>
         <div class="header-right-actions">
           <button class="header-icon-btn" (click)="onRefresh()" title="Refresh">🔄</button>
           <button class="header-icon-btn notif-btn" title="Notifications">
@@ -446,18 +447,24 @@ export class GamesComponent implements OnInit {
     return names[type] || type;
   }
 
-  constructor(private router: Router, private route: ActivatedRoute) {}
+  // Zone session — populated by the guard so we know we're in a valid zone
+  zoneName = this.zoneSession.activeZoneName;
+
+  constructor(
+    private router: Router,
+    private route: ActivatedRoute,
+    private zoneSession: ZoneSessionService
+  ) {}
 
   onRefresh() { window.location.reload(); }
 
   ngOnInit() {
-    const fromZone = this.route.snapshot.queryParamMap.get('fromZone');
-    if (!fromZone) {
-      // Opened from shell nav — go to map instead
-      this.router.navigate(['/app/map']);
-      return;
+    // Priority: query param (opened from zone component) → session (opened from nav)
+    const fromZone = this.route.snapshot.queryParamMap.get('fromZone')
+      ?? this.zoneSession.activeZoneId();
+    if (fromZone) {
+      this.fromZoneId.set(fromZone);
     }
-    this.fromZoneId.set(fromZone);
   }
 
   goBackToZone() {

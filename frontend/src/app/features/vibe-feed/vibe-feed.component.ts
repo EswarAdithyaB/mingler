@@ -2,6 +2,7 @@ import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
+import { ZoneSessionService } from '../../core/services/zone-session.service';
 
 /* ── Data Shapes ───────────────────────────────────────────── */
 interface VibeChannel {
@@ -769,7 +770,11 @@ export class VibeFeedComponent implements OnInit {
   activeMain = signal<'all' | 'mine' | 'trending'>('all');
   fromZoneId = signal<string | null>(null);
 
-  constructor(private router: Router, private route: ActivatedRoute) {}
+  constructor(
+    private router: Router,
+    private route: ActivatedRoute,
+    private zoneSession: ZoneSessionService
+  ) {}
 
   onRefresh() { window.location.reload(); }
 
@@ -923,7 +928,9 @@ export class VibeFeedComponent implements OnInit {
   }
 
   ngOnInit() {
-    const fromZone = this.route.snapshot.queryParamMap.get('fromZone');
+    // Priority: query param → active session
+    const fromZone = this.route.snapshot.queryParamMap.get('fromZone')
+      ?? this.zoneSession.activeZoneId();
     if (fromZone) this.fromZoneId.set(fromZone);
   }
 

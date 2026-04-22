@@ -29,7 +29,7 @@ const VIBE_EMOJIS: Record<string, string> = {
 
       <!-- Header -->
       <div class="screen-header">
-        <button class="back-btn-ghost">←</button>
+        <button class="back-btn-ghost" (click)="goBack()">←</button>
         <h3 class="header-title">Settings</h3>
         <div class="header-right-actions">
           <button class="header-icon-btn" (click)="onRefresh()" title="Refresh">🔄</button>
@@ -349,6 +349,8 @@ export class SettingsComponent implements OnInit {
     private authService: AuthService,
     private router: Router
   ) {}
+
+  goBack() { this.router.navigate(['/app/profile']); }
 
   onRefresh() { window.location.reload(); }
 
