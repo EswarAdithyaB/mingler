@@ -69,6 +69,14 @@ export const routes: Routes = [
       {
         path: 'profile',
         loadComponent: () => import('./features/profile/profile.component').then(m => m.ProfileComponent)
+      },
+      {
+        path: 'notifications',
+        loadComponent: () => import('./features/notifications/notifications.component').then(m => m.NotificationsComponent)
+      },
+      {
+        path: 'avatar-gen',
+        loadComponent: () => import('./features/avatar-gen/avatar-gen.component').then(m => m.AvatarGenComponent)
       }
     ]
   },

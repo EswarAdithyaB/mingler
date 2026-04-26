@@ -58,10 +58,11 @@ app.get('/health', (req, res) => {
 });
 
 // ── Routes ───────────────────────────────────────────────
-app.use('/api/auth',  require('./src/routes/auth.routes'));
-app.use('/api/zones', require('./src/routes/zone.routes'));
-app.use('/api/vibes', require('./src/routes/vibe.routes'));
-app.use('/api/games', require('./src/routes/game.routes'));
+app.use('/api/auth',   require('./src/routes/auth.routes'));
+app.use('/api/zones',  require('./src/routes/zone.routes'));
+app.use('/api/vibes',  require('./src/routes/vibe.routes'));
+app.use('/api/games',  require('./src/routes/game.routes'));
+app.use('/api/avatar', require('./src/routes/avatar.routes'));
 
 // ── Socket Events ────────────────────────────────────────
 require('./src/sockets')(io);

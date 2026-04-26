@@ -22,8 +22,12 @@ import { Zone } from '../../core/models';
         </div>
         <div class="header-right-actions">
           <button class="header-icon-btn" (click)="refreshZones()" title="Refresh">🔄</button>
-          <button class="header-icon-btn notif-btn" title="Notifications">
-            🔔<span class="notif-dot"></span>
+          <button class="header-icon-btn notif-btn" title="Notifications" (click)="goNotifications()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="rgba(255,255,255,0.6)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="rgba(255,255,255,0.6)" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <span class="notif-dot"></span>
           </button>
         </div>
       </div>
@@ -723,6 +727,8 @@ export class MapComponent implements OnInit, OnDestroy {
   dismissWarning(): void {
     this.warningBanner.set(null);
   }
+
+  goNotifications() { this.router.navigate(['/app/notifications']); }
 
   createZone() { /* open modal */ }
 
