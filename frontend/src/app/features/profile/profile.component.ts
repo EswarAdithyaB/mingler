@@ -7,6 +7,8 @@ interface Achievement {
   icon: string;
   label: string;
   earned: boolean;
+  description?: string;
+  earnedDate?: string;
 }
 
 interface Activity {
@@ -34,8 +36,8 @@ interface Activity {
         <div class="top-bar-actions">
           <button class="icon-btn" (click)="goNotifications()">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="rgba(255,255,255,0.6)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="rgba(255,255,255,0.6)" stroke-width="2" stroke-linecap="round"/>
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="#7B61FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="#7B61FF" stroke-width="2" stroke-linecap="round"/>
             </svg>
           </button>
           <button class="icon-btn" (click)="goSettings()">
@@ -113,17 +115,41 @@ interface Activity {
           </div>
           <div class="badges-row">
             @for (a of achievements; track a.id) {
-              <div class="badge-card" [class.badge-earned]="a.earned">
+              <div class="badge-card" [class.badge-earned]="a.earned" (click)="showBadgeInfo(a, $event)" #badgeRef>
                 @if (a.icon === 'medal') {
                   <svg width="20" height="27" viewBox="0 0 20 27" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M7.09375 14.625L8.1875 11.0625L5.3125 8.75H8.875L10 5.25L11.125 8.75H14.6875L11.7812 11.0625L12.875 14.625L10 12.4062L7.09375 14.625ZM2.5 26.25V16.5938C1.70833 15.7188 1.09375 14.7188 0.65625 13.5938C0.21875 12.4688 0 11.2708 0 10C0 7.20833 0.96875 4.84375 2.90625 2.90625C4.84375 0.96875 7.20833 0 10 0C12.7917 0 15.1562 0.96875 17.0938 2.90625C19.0312 4.84375 20 7.20833 20 10C20 11.2708 19.7812 12.4688 19.3438 13.5938C18.9062 14.7188 18.2917 15.7188 17.5 16.5938V26.25L10 23.75L2.5 26.25ZM10 17.5C12.0833 17.5 13.8542 16.7708 15.3125 15.3125C16.7708 13.8542 17.5 12.0833 17.5 10C17.5 7.91667 16.7708 6.14583 15.3125 4.6875C13.8542 3.22917 12.0833 2.5 10 2.5C7.91667 2.5 6.14583 3.22917 4.6875 4.6875C3.22917 6.14583 2.5 7.91667 2.5 10C2.5 12.0833 3.22917 13.8542 4.6875 15.3125C6.14583 16.7708 7.91667 17.5 10 17.5Z" fill="#AFA2FF"/>
                   </svg>
                 } @else if (a.icon === 'bolt') {
+                  <svg width="25" height="25" viewBox="0 0 25 25" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M0.34375 10.243L5.59375 4.99303C5.88542 4.70136 6.22917 4.49303 6.625 4.36803C7.02083 4.24303 7.42708 4.22219 7.84375 4.30553L9.46875 4.64928C8.34375 5.98261 7.45833 7.19094 6.8125 8.27428C6.16667 9.35761 5.54167 10.6701 4.9375 12.2118L0.34375 10.243ZM6.75 13.0868C7.22917 11.5868 7.88021 10.1701 8.70312 8.83678C9.52604 7.50344 10.5208 6.25344 11.6875 5.08678C13.5208 3.25344 15.6146 1.88365 17.9688 0.977402C20.3229 0.0711519 22.5208 -0.20489 24.5625 0.149277C24.9167 2.19094 24.6458 4.38886 23.75 6.74303C22.8542 9.09719 21.4896 11.1909 19.6562 13.0243C18.5104 14.1701 17.2604 15.1649 15.9062 16.0087C14.5521 16.8524 13.125 17.5139 11.625 17.993L6.75 13.0868ZM15.375 9.33678C15.8542 9.81594 16.4427 10.0555 17.1406 10.0555C17.8385 10.0555 18.4271 9.81594 18.9062 9.33678C19.3854 8.85761 19.625 8.26907 19.625 7.57115C19.625 6.87324 19.3854 6.28469 18.9062 5.80553C18.4271 5.32636 17.8385 5.08678 17.1406 5.08678C16.4427 5.08678 15.8542 5.32636 15.375 5.80553C14.8958 6.28469 14.6562 6.87324 14.6562 7.57115C14.6562 8.26907 14.8958 8.85761 15.375 9.33678ZM14.5 24.368L12.5 19.7743C14.0417 19.1701 15.3594 18.5451 16.4531 17.8993C17.5469 17.2534 18.7604 16.368 20.0938 15.243L20.4062 16.868C20.4896 17.2847 20.4688 17.6962 20.3438 18.1024C20.2188 18.5087 20.0104 18.8576 19.7188 19.1493L14.5 24.368ZM2.34375 17.0868C3.07292 16.3576 3.95833 15.9878 5 15.9774C6.04167 15.967 6.92708 16.3264 7.65625 17.0555C8.38542 17.7847 8.75 18.6701 8.75 19.7118C8.75 20.7534 8.38542 21.6389 7.65625 22.368C7.13542 22.8889 6.26562 23.3368 5.04688 23.7118C3.82812 24.0868 2.14583 24.4201 0 24.7118C0.291667 22.5659 0.625 20.8889 1 19.6805C1.375 18.4722 1.82292 17.6076 2.34375 17.0868Z" fill="#C57EFF"/>
+                  </svg>
+                } @else if (a.icon === 'lightning') {
                   <svg width="20" height="25" viewBox="0 0 20 25" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M5 25L6.25 16.25H0L11.25 0H13.75L12.5 10H20L7.5 25H5Z" fill="#00EC9A"/>
                   </svg>
                 } @else {
                   <span class="badge-icon">{{ a.icon }}</span>
+                }
+
+                <!-- Badge Info Popup - INSIDE badge-card -->
+                @if (selectedBadge() === a.id && badgePosition()) {
+                  <div class="badge-popup" [ngStyle]="{
+                    'top.px': badgePosition()!.top - 140,
+                    'left.px': badgePosition()!.left
+                  }" [style.--arrow-left.px]="badgePosition()!.arrowLeft">
+                    <div class="popup-title">{{ a.label }}</div>
+                    @if (a.description) {
+                      <div class="popup-description">{{ a.description }}</div>
+                    }
+                    <div class="popup-divider"></div>
+                    <div class="popup-footer">
+                      <span class="popup-status">{{ a.earned ? '✓ EARNED' : 'LOCKED' }}</span>
+                      @if (a.earnedDate) {
+                        <span class="popup-date">{{ a.earnedDate }}</span>
+                      }
+                    </div>
+                  </div>
                 }
               </div>
             }
@@ -193,7 +219,7 @@ interface Activity {
     }
     .logo-text {
       font-family: 'Space Grotesk', sans-serif;
-      font-size: 16px; font-weight: 800; color: white;
+      font-size: 16px; font-weight: 800; color: #7B61FF;
     }
     .top-bar-actions { display: flex; align-items: center; gap: 8px; }
     .icon-btn {
@@ -206,10 +232,12 @@ interface Activity {
 
     /* ── SCROLL BODY ──────────────────────────────────── */
     .scroll-body {
-      flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden;
+      flex: 1; min-height: 0; overflow-y: auto; overflow-x: visible;
       scrollbar-width: none;
       display: flex; flex-direction: column; align-items: center;
       padding: 0 20px calc(120px + env(safe-area-inset-bottom, 0px));
+      position: relative;
+      z-index: 0;
       &::-webkit-scrollbar { display: none; }
     }
 
@@ -349,7 +377,9 @@ interface Activity {
 
     /* ── BADGES ──────────────────────────────────────── */
     .badges-row {
-      display: flex; gap: 10px;
+      display: flex; gap: 10px; position: relative;
+      overflow: visible;
+      z-index: 100;
     }
     .badge-card {
       width: 58px; height: 58px; border-radius: 16px;
@@ -358,6 +388,14 @@ interface Activity {
       display: flex; align-items: center; justify-content: center;
       font-size: 24px; flex-shrink: 0;
       transition: all 0.2s;
+      cursor: pointer;
+      position: relative;
+      &:active { transform: scale(0.95); }
+
+      /* Ensure popup is positioned relative to badge */
+      &:has(.badge-popup) {
+        z-index: 999;
+      }
     }
     .badge-earned {
       background: rgba(123,97,255,0.12);
@@ -367,6 +405,98 @@ interface Activity {
     .badge-add {
       background: rgba(255,255,255,0.02);
       border: 1px dashed rgba(255,255,255,0.1);
+    }
+
+    /* ── BADGE POPUP ──────────────────────────────── */
+    .badge-popup {
+      position: fixed;
+      background: rgba(13, 10, 28, 0.98);
+      backdrop-filter: blur(15px);
+      border: 1px solid rgba(123, 97, 255, 0.35);
+      border-radius: 14px;
+      padding: 14px 16px;
+      width: auto;
+      max-width: calc(100vw - 32px);
+      z-index: 1000;
+      animation: popupFadeIn 0.2s ease;
+      box-shadow: 0 12px 48px rgba(123, 97, 255, 0.15), 0 0 1px rgba(123, 97, 255, 0.2);
+      white-space: normal;
+      overflow: visible;
+    }
+
+    /* Pointer border */
+    .badge-popup::before {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: calc(var(--arrow-left, 20px) - 10px);
+      width: 0;
+      height: 0;
+      border-left: 10px solid transparent;
+      border-right: 10px solid transparent;
+      border-top: 11px solid rgba(123, 97, 255, 0.35);
+      z-index: 999;
+    }
+
+    /* Small pointer at bottom of popup */
+    .badge-popup::after {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      left: calc(var(--arrow-left, 20px) - 8px);
+      width: 0;
+      height: 0;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-top: 10px solid rgba(13, 10, 28, 0.98);
+      z-index: 1001;
+    }
+
+    @media (max-width: 480px) {
+      .badge-popup {
+        max-width: calc(100vw - 32px);
+        padding: 12px 14px;
+        font-size: 11px;
+      }
+    }
+    .popup-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 6px;
+      letter-spacing: -0.2px;
+    }
+    .popup-description {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.65);
+      margin-bottom: 10px;
+      line-height: 1.4;
+    }
+    .popup-divider {
+      height: 1px;
+      background: rgba(123, 97, 255, 0.2);
+      margin: 10px 0;
+    }
+    .popup-footer {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .popup-status {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      color: #10b981;
+    }
+    .popup-date {
+      font-size: 9px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.45);
+      letter-spacing: 0.5px;
+    }
+    @keyframes popupFadeIn {
+      from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
     }
 
     /* ── ACTIVITY LIST ───────────────────────────────── */
@@ -408,10 +538,34 @@ interface Activity {
 })
 export class ProfileComponent {
 
+  selectedBadge = signal<string | null>(null);
+  badgePosition = signal<{ top: number; left: number; arrowLeft: number } | null>(null);
+
   achievements: Achievement[] = [
-    { id: 'a1', icon: 'medal', label: 'Zone Master',   earned: true  },
-    { id: 'a2', icon: 'bolt',  label: 'Speed Connect', earned: true  },
-    { id: 'a3', icon: 'bolt',  label: 'First Flight',  earned: true  },
+    {
+      id: 'a1',
+      icon: 'medal',
+      label: 'Zone Master',
+      earned: true,
+      description: 'Visited 10 unique zones',
+      earnedDate: 'Earned 2 months ago'
+    },
+    {
+      id: 'a2',
+      icon: 'bolt',
+      label: 'Speed Connect',
+      earned: true,
+      description: 'Made 5 quick connections',
+      earnedDate: 'Earned 1 month ago'
+    },
+    {
+      id: 'a3',
+      icon: 'lightning',
+      label: 'First Flight',
+      earned: true,
+      description: 'Won your first game',
+      earnedDate: 'Earned 3 weeks ago'
+    },
   ];
 
   activities: Activity[] = [
@@ -442,6 +596,51 @@ export class ProfileComponent {
   ];
 
   constructor(private router: Router) {}
+
+  showBadgeInfo(achievement: Achievement, event: Event) {
+    const badgeElement = event.currentTarget as HTMLElement;
+    const rect = badgeElement.getBoundingClientRect();
+
+    // Position pop-up directly above badge, touching it
+    // Check available space and position accordingly
+    let leftPos = rect.left;
+    const popupWidth = 200;
+    const screenWidth = window.innerWidth;
+    const padding = 16;
+    const badgeCenter = rect.left + rect.width / 2;
+
+    // If badge is on left side, position popup from badge left
+    // If badge is on right side, position popup from badge right
+    if (rect.left + popupWidth + padding > screenWidth) {
+      // Not enough space on right, position from right edge
+      leftPos = rect.right - popupWidth;
+    } else {
+      // Position from left edge of badge
+      leftPos = rect.left;
+    }
+
+    // Ensure stays within padding bounds
+    leftPos = Math.max(padding, Math.min(leftPos, screenWidth - popupWidth - padding));
+
+    // Calculate arrow position relative to popup
+    const arrowLeftPos = badgeCenter - leftPos;
+
+    this.badgePosition.set({
+      top: rect.top,  // Contact with badge (top edge)
+      left: leftPos,
+      arrowLeft: arrowLeftPos
+    });
+
+    this.selectedBadge.set(achievement.id);
+
+    // Auto-hide after 3 seconds
+    setTimeout(() => {
+      if (this.selectedBadge() === achievement.id) {
+        this.selectedBadge.set(null);
+        this.badgePosition.set(null);
+      }
+    }, 3000);
+  }
 
   goSettings() {
     this.router.navigate(['/app/settings']);
