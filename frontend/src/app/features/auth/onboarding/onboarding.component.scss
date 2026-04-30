@@ -1,0 +1,262 @@
+
+    .onboarding-shell {
+      width: 100%;
+      height: 100dvh;
+      max-width: 430px;
+      margin: 0 auto;
+      background: #08080F;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ── Slide base ─────────────────────────────── */
+    .slide {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      padding: 0 28px;
+      background: radial-gradient(ellipse at 50% 10%, rgba(80,40,160,0.28) 0%, transparent 65%),
+                  radial-gradient(ellipse at 80% 90%, rgba(140,40,200,0.12) 0%, transparent 50%),
+                  #08080F;
+    }
+
+    /* ── Top bar ─────────────────────────────────── */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: max(env(safe-area-inset-top, 0px), 20px);
+      padding-top: calc(env(safe-area-inset-top, 0px) + 20px);
+      margin-bottom: 8px;
+      flex-shrink: 0;
+    }
+
+    .back-btn {
+      width: 36px; height: 36px;
+      background: none; border: none;
+      color: #A78BFA; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 50%;
+      transition: background 0.2s;
+      &:active { background: rgba(124,58,237,0.12); }
+    }
+
+    .step-dots {
+      display: flex; gap: 8px; align-items: center;
+    }
+    .dot {
+      width: 8px; height: 8px; border-radius: 4px;
+      background: rgba(255,255,255,0.18);
+      transition: all 0.3s;
+    }
+    .dot.active {
+      width: 24px;
+      background: #8B5CF6;
+      box-shadow: 0 0 8px rgba(139,92,246,0.7);
+    }
+
+    /* ── Slide 1 illustration ─────────────────── */
+    .illustration-wrap {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 0;
+      padding: 8px 0;
+    }
+
+    .left-glow {
+      position: absolute;
+      left: -100px;
+      top: 200px;
+      width: 195px;
+      height: 465px;
+      background: rgba(197, 126, 255, 0.20);
+      border-radius: 50%;
+      filter: blur(60px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .hero-svg {
+      width: 100%;
+      max-width: 340px;
+      height: auto;
+      max-height: 100%;
+      filter: drop-shadow(0 0 40px rgba(124,58,237,0.35));
+      overflow: visible;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Badge bounce animations – each badge bounces independently */
+    .badge-bounce-1 {
+      animation: badge-float 3s ease-in-out infinite;
+      animation-delay: 0s;
+      transform-origin: 357px 27px;
+    }
+    .badge-bounce-2 {
+      animation: badge-float 3.4s ease-in-out infinite;
+      animation-delay: 0.9s;
+      transform-origin: 27px 199px;
+    }
+    .badge-bounce-3 {
+      animation: badge-float 2.8s ease-in-out infinite;
+      animation-delay: 1.7s;
+      transform-origin: 316px 336px;
+    }
+
+    @keyframes badge-float {
+      0%, 100% { transform: translateY(0px); }
+      50%       { transform: translateY(-10px); }
+    }
+
+    /* ── Slide 2 illustration ─────────────────── */
+    .illustration-wrap-2 {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 0;
+      padding: 8px 0;
+    }
+
+    .hero-svg-2 {
+      width: 100%;
+      max-width: 320px;
+      height: auto;
+      max-height: 100%;
+      overflow: visible;
+      position: relative;
+      margin-top: -150px;
+      z-index: 1;
+      filter: drop-shadow(0 0 40px rgba(116,89,247,0.3));
+    }
+
+    /* Badge bounce animations – slide 2 */
+    .s2-badge-1 {
+      animation: s2-badge-float-1 3.2s ease-in-out infinite;
+      animation-delay: 0s;
+      transform-origin: 284px 92px;
+    }
+    .s2-badge-2 {
+      animation: s2-badge-float-2 2.9s ease-in-out infinite;
+      animation-delay: 1.1s;
+      transform-origin: 80px 280px;
+    }
+
+    @keyframes s2-badge-float-1 {
+      0%, 100% { transform: scale(1.5) translateY(0px); }
+      50%       { transform: scale(1.5) translateY(-7px); }
+    }
+    @keyframes s2-badge-float-2 {
+      0%, 100% { transform: scale(1.5) translateY(0px); }
+      50%       { transform: scale(1.5) translateY(-7px); }
+    }
+
+    @keyframes float-gentle {
+      0%, 100% { transform: translateY(0px); }
+      50%       { transform: translateY(-8px); }
+    }
+
+    /* ── Text block ──────────────────────────── */
+    .text-block {
+      flex-shrink: 0;
+      text-align: center;
+      padding: 0 4px 24px;
+    }
+    .text-block-2 { padding-bottom: 20px; }
+
+    .slide-title {
+      font-size: 34px;
+      font-weight: 900;
+      color: #FFFFFF;
+      line-height: 1.15;
+      letter-spacing: -0.5px;
+      margin-bottom: 16px;
+    }
+    .slide-title-1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 36px;
+      color: #ffffff;
+    }
+    .slide-title-2 {
+        margin-top: -170px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 40px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+    .think-emoji { font-size: 28px; vertical-align: middle; }
+
+    .slide-desc {
+      font-size: 15px;
+      color: rgba(200,190,230,0.75);
+      line-height: 1.65;
+      max-width: 300px;
+      margin: 0 auto;
+    }
+
+    /* ── CTA block ───────────────────────────── */
+    .cta-block {
+      flex-shrink: 0;
+      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 32px);
+    }
+
+    .btn-next {
+      width: 100%;
+      padding: 18px 24px;
+      border-radius: 50px;
+      border: none;
+      background: linear-gradient(to right, #AFA2FF, #7459F7);
+      color: #FFFFFF;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 24px rgba(116,89,247,0.4);
+      &:active { transform: scale(0.97); }
+      &:hover  { box-shadow: 0 6px 32px rgba(116,89,247,0.6); opacity: 0.92; }
+    }
+
+    .btn-get-started {
+      width: 100%;
+      padding: 18px 24px;
+      border-radius: 50px;
+      border: none;
+      background: linear-gradient(135deg, #8B5CF6, #EC4899);
+      color: #FFFFFF;
+      font-size: 17px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 6px 32px rgba(139,92,246,0.45);
+      margin-bottom: 16px;
+      &:active { transform: scale(0.97); }
+      &:hover  { box-shadow: 0 8px 40px rgba(139,92,246,0.65); }
+    }
+
+    .privacy-note {
+      text-align: center;
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      color: rgba(255,255,255,0.25);
+      font-weight: 500;
+    }
+
+    /* ── Bottom handle (slide 1) ─────────────── */
+    .bottom-handle {
+      flex-shrink: 0;
+      width: 120px; height: 4px;
+      background: rgba(255,255,255,0.12);
+      border-radius: 2px;
+      margin: 0 auto;
+      margin-bottom: max(env(safe-area-inset-bottom, 0px), 12px);
+    }
+
+    /* ── Slide-level fade ────────────────────── */
+    .animate-fade-in { animation: fade-in 0.35s ease forwards; }
+    @keyframes fade-in { from { opacity: 0; transform: translateX(18px); } to { opacity: 1; transform: translateX(0); } }

@@ -1,0 +1,50 @@
+<div class="entry-screen">
+
+  <!-- ── Outer atmospheric glow rings ───────────────────── -->
+  <div class="atmos-rings">
+    <div class="atmos atmos-1"></div>
+    <div class="atmos atmos-2"></div>
+    <div class="atmos atmos-3"></div>
+  </div>
+
+  <!-- ── Main radar orb ─────────────────────────────────── -->
+  <div class="orb-wrap">
+    <!-- silent outer rings -->
+    <div class="silent-ring sr-1"></div>
+    <div class="silent-ring sr-2"></div>
+
+    <!-- spinning arcs -->
+    <div class="arc-ring arc-teal"></div>
+    <div class="arc-ring arc-pink"></div>
+
+    <!-- inner scan circle -->
+    <div class="inner-scan">
+      <div class="scan-line"></div>
+      <!-- crosshair marks -->
+      <div class="crosshair ch-top"></div>
+      <div class="crosshair ch-bottom"></div>
+      <div class="crosshair ch-left"></div>
+      <div class="crosshair ch-right"></div>
+      <!-- pulse core -->
+      <div class="pulse-core"></div>
+    </div>
+  </div>
+
+  <!-- ── Text block ─────────────────────────────────────── -->
+  <div class="text-block">
+    <h1 class="zone-name">Entering {{ zoneName }}...</h1>
+    <p class="step-label">{{ currentStep() }}</p>
+  </div>
+
+  <!-- ── Progress bar ───────────────────────────────────── -->
+  <div class="progress-track">
+    <div class="progress-fill" [style.width]="progress() + '%'"></div>
+  </div>
+
+  <!-- ── Avatar preview ────────────────────────────── -->
+  <div class="avatar-preview" [class.visible]="progress() > 60">
+    <div class="avatar-glow-ring"></div>
+    <div class="avatar-img">{{ avatarEmoji }}</div>
+  </div>
+
+</div>

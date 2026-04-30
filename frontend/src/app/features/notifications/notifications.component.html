@@ -1,0 +1,56 @@
+<div class="notifications-root">
+  <!-- Header -->
+  <div class="notif-header">
+    <button class="back-btn" (click)="goBack()">← Back</button>
+    <h1 class="header-title">Notifications</h1>
+    <button class="mark-all-btn" (click)="markAllRead()">Mark all as read</button>
+  </div>
+
+  <!-- Notifications List -->
+  <div class="notif-list">
+    @if (notifications().length === 0) {
+      <div class="empty-state">
+        <span class="empty-icon">🔔</span>
+        <p class="empty-text">No notifications yet</p>
+      </div>
+    }
+
+    @for (notif of notifications(); track notif.id) {
+      <div class="notif-item"
+        [class.unread]="!notif.read"
+        (click)="markRead(notif)">
+
+        <!-- Icon -->
+        <div class="notif-icon">
+          @switch (notif.type) {
+            @case ('zone') { 📍 }
+            @case ('game') { 🎮 }
+            @case ('confession') { 🤫 }
+            @case ('discovery') { ✨ }
+            @case ('mention') { 👤 }
+          }
+        </div>
+
+        <!-- Content -->
+        <div class="notif-content">
+          <h3 class="notif-title">{{ notif.title }}</h3>
+          <p class="notif-desc">{{ notif.description }}</p>
+          <span class="notif-time">{{ notif.timeAgo }}</span>
+        </div>
+
+        <!-- Actions (if any) -->
+        @if (notif.hasActions) {
+          <div class="notif-actions" (click)="$event.stopPropagation()">
+            <button class="action-btn accept" (click)="acceptInvite(notif, $event)">Accept</button>
+            <button class="action-btn decline" (click)="declineInvite(notif, $event)">Decline</button>
+          </div>
+        }
+
+        <!-- Unread indicator -->
+        @if (!notif.read) {
+          <span class="unread-dot"></span>
+        }
+      </div>
+    }
+  </div>
+</div>

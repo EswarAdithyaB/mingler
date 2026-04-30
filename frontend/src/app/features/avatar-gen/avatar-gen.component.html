@@ -1,0 +1,100 @@
+<div class="avatar-gen-root">
+  <!-- IDLE STATE: Choose action -->
+  @if (stage() === 'idle') {
+    <div class="stage idle-stage">
+      <div class="idle-content">
+        <h1 class="title">Create Your Avatar</h1>
+        <p class="subtitle">Transform your selfie into an AI-generated avatar</p>
+        <button class="action-btn primary" (click)="startCamera()">
+          📸 Start Camera
+        </button>
+        <button class="action-btn secondary" (click)="goBack()">
+          ← Back
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- CAMERA STATE: Take a selfie -->
+  @if (stage() === 'camera') {
+    <div class="stage camera-stage">
+      <div class="camera-container">
+        <video #videoEl autoplay playsinline></video>
+        <canvas #canvasEl hidden></canvas>
+      </div>
+      <div class="camera-controls">
+        <button class="fab-btn" (click)="takeSnapshot()">📸</button>
+        <button class="icon-btn" (click)="flipCamera()">🔄</button>
+        <button class="icon-btn close" (click)="stopCamera()">✕</button>
+      </div>
+    </div>
+  }
+
+  <!-- PREVIEW STATE: Review the selfie -->
+  @if (stage() === 'preview') {
+    <div class="stage preview-stage">
+      <div class="preview-container">
+        <img [src]="selfieDataUrl()" alt="Your selfie preview" />
+      </div>
+      <div class="preview-controls">
+        <button class="action-btn primary" (click)="generate()">
+          ✨ Generate Avatar
+        </button>
+        <button class="action-btn secondary" (click)="retake()">
+          ↻ Retake Photo
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- GENERATING STATE: Show progress -->
+  @if (stage() === 'generating') {
+    <div class="stage generating-stage">
+      <div class="generating-content">
+        <h2 class="gen-title">Generating Your Avatar</h2>
+        <div class="steps-list">
+          @for (step of genSteps; track step.label) {
+            <div class="step" [class.active]="step.active" [class.done]="step.done">
+              <span class="step-dot"></span>
+              <span class="step-label">{{ step.label }}</span>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- RESULT STATE: Show generated avatar -->
+  @if (stage() === 'result') {
+    <div class="stage result-stage">
+      <div class="result-container">
+        <img [src]="resultUrl()" alt="Generated avatar" />
+      </div>
+      <div class="result-controls">
+        <button class="action-btn primary" (click)="saveAvatar()">
+          ⬇️ Download Avatar
+        </button>
+        <button class="action-btn secondary" (click)="retake()">
+          ↻ Create Another
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- ERROR STATE: Show error message -->
+  @if (stage() === 'error') {
+    <div class="stage error-stage">
+      <div class="error-content">
+        <span class="error-icon">⚠️</span>
+        <h2 class="error-title">Oops!</h2>
+        <p class="error-msg">{{ errorMsg() }}</p>
+        <button class="action-btn primary" (click)="retake()">
+          ↻ Try Again
+        </button>
+        <button class="action-btn secondary" (click)="goBack()">
+          ← Go Back
+        </button>
+      </div>
+    </div>
+  }
+</div>

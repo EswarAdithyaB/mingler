@@ -1,0 +1,95 @@
+<div class="map-root">
+  <!-- Loading spinner -->
+  @if (loading()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Detecting nearby zones...</p>
+    </div>
+  } @else {
+    <!-- Main map/visualization -->
+    <div class="map-container">
+      <!-- Background map -->
+      <div class="map-bg">
+        @for (zone of zones(); track zone.id; let i = $index) {
+          <div class="zone-marker" [style.left]="getMarkerLeft(i)" [style.top]="getMarkerTop(i)">
+            <div class="marker-pulse"></div>
+            <span class="marker-icon">📍</span>
+          </div>
+        }
+      </div>
+
+      <!-- Top info bar -->
+      <div class="map-top-bar">
+        <div class="location-info">
+          <span class="location-icon">📍</span>
+          <span class="location-name">{{ locationName() }}</span>
+        </div>
+        <button class="notif-btn" (click)="goNotifications()">🔔</button>
+      </div>
+
+      <!-- Warning banner -->
+      @if (warningBanner()) {
+        <div class="warning-banner">
+          <span class="warning-icon">⚠️</span>
+          <span class="warning-text">{{ warningBanner() }}</span>
+          <button class="warning-close" (click)="dismissWarning()">✕</button>
+        </div>
+      }
+
+      <!-- Active zone badge -->
+      @if (hasActiveSession()) {
+        <div class="active-zone-badge">
+          <span class="badge-dot"></span>
+          <span class="badge-text">In {{ activeZoneName() }}</span>
+          <button class="badge-action" (click)="resumeZone()">Resume</button>
+        </div>
+      }
+
+      <!-- Zone cards panel -->
+      <div class="zones-panel" [class.expanded]="panelExpanded()">
+        <!-- Panel handle -->
+        <div class="panel-handle"></div>
+
+        <!-- Panel header -->
+        <div class="panel-header">
+          <h2 class="panel-title">Nearby Zones</h2>
+          <button class="refresh-btn" (click)="refreshZones()">🔄</button>
+        </div>
+
+        <!-- Zone cards -->
+        <div class="zones-scroll">
+          @for (zone of zones(); track zone.id) {
+            <div class="zone-card" [id]="'zone-card-' + zone.id"
+              [class.selected]="selectedZone()?.id === zone.id"
+              (click)="selectZone(zone)">
+
+              <!-- Card header -->
+              <div class="card-header">
+                <h3 class="card-title">{{ zone.name }}</h3>
+                <span class="card-distance">{{ getDistance(zone) }} km</span>
+              </div>
+
+              <!-- Card info -->
+              <p class="card-description">{{ zone.description }}</p>
+
+              <!-- Tags -->
+              <div class="card-tags">
+                @for (tag of getZoneTags(zone); track tag) {
+                  <span class="tag">{{ tag }}</span>
+                }
+              </div>
+
+              <!-- Card footer -->
+              <div class="card-footer">
+                <span class="online-count">{{ zone.activeUsers || 0 }} online</span>
+                <button class="enter-btn" (click)="enterZone(zone, $event)">
+                  ENTER
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</div>

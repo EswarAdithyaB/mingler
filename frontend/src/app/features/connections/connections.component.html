@@ -1,0 +1,86 @@
+<div class="screen gradient-bg">
+  <!-- Header -->
+  <div class="screen-header">
+    <h3 class="header-title">My Connections</h3>
+    <div class="header-right">
+      <button class="header-icon-btn">🔍</button>
+      <button class="header-icon-btn" (click)="onRefresh()" title="Refresh">🔄</button>
+      <button class="header-icon-btn notif-btn" title="Notifications" (click)="goNotifications()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="rgba(255,255,255,0.6)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="rgba(255,255,255,0.6)" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <span class="notif-dot"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs-row">
+    <button class="tab" [class.active]="activeTab() === 'connections'" (click)="activeTab.set('connections')">
+      My Connections
+      <span class="tab-count">{{ connections().length }}</span>
+    </button>
+    <button class="tab" [class.active]="activeTab() === 'nearby'" (click)="activeTab.set('nearby')">
+      Nearby Strangers
+      <span class="tab-count online">{{ nearbyPeople().length }}</span>
+    </button>
+  </div>
+
+  <div class="screen-content">
+    @if (activeTab() === 'connections') {
+      @if (connections().length === 0) {
+        <div class="empty-state">
+          <div class="empty-icon animate-float">🤝</div>
+          <h3>No Connections Yet</h3>
+          <p>Connect with people in your zone to grow your vibe network</p>
+          <button class="btn btn-primary btn-sm" (click)="activeTab.set('nearby')">
+            Find People Nearby
+          </button>
+        </div>
+      } @else {
+        <div class="scroll-list">
+          @for (conn of connections(); track conn.id) {
+            <div class="connection-card">
+              <div class="conn-avatar avatar avatar-md avatar-online">{{ conn.avatar || conn.displayName[0] }}</div>
+              <div class="conn-info">
+                <div class="conn-name">{{ conn.displayName }}</div>
+                <div class="conn-username">&#64;{{ conn.username }}</div>
+                <div class="conn-meta">
+                  <span class="badge badge-purple">{{ conn.vibe }}</span>
+                  <span class="mutual">🗺️ {{ conn.mutualZones }} mutual zones</span>
+                </div>
+              </div>
+              <div class="conn-actions">
+                <button class="action-icon-btn">💬</button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    }
+
+    @if (activeTab() === 'nearby') {
+      <div class="nearby-header">
+        <p class="text-muted text-sm">People in your zone right now</p>
+      </div>
+      <div class="scroll-list" style="padding-top:8px">
+        @for (person of nearbyPeople(); track person.id) {
+          <div class="person-card">
+            <div class="person-avatar avatar avatar-md avatar-glow">{{ person.avatar }}</div>
+            <div class="person-info">
+              <div class="person-name">{{ person.displayName }}</div>
+              <div class="person-username">&#64;{{ person.username }}</div>
+              <div class="person-vibes">
+                <span class="badge badge-purple">{{ person.vibe }}</span>
+              </div>
+            </div>
+            <div class="person-actions">
+              <button class="btn btn-primary btn-sm" (click)="sendConnect(person)">Connect</button>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>

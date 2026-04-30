@@ -1,0 +1,80 @@
+<!-- Top nav bar -->
+<div class="top-bar">
+  <button class="back-btn" (click)="goBack()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="15 18 9 12 15 6"/>
+    </svg>
+  </button>
+  <span class="top-bar-title">Set Your Vibe</span>
+  <div class="top-bar-spacer"></div>
+</div>
+
+<!-- Alert banner -->
+@if (showAlert()) {
+  <div class="alert-banner">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="10" stroke="#FBBF24" stroke-width="2"/>
+      <path d="M12 8v4M12 16h.01" stroke="#FBBF24" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <span>Please select a vibe before continuing!</span>
+  </div>
+}
+
+<!-- Scrollable content -->
+<div class="screen">
+
+  <!-- Background glows -->
+  <div class="bg-glow bg-glow-top"></div>
+  <div class="bg-glow bg-glow-bottom"></div>
+
+  <!-- Header -->
+  <div class="header">
+    <span class="status-pill">CURRENT STATUS</span>
+    <h1 class="heading">How are you<br><span class="heading-accent">feeling?</span></h1>
+    <p class="sub">Update your vibe to let your squad know<br>what's up in the digital nocturne.</p>
+  </div>
+
+  <!-- Vibe grid -->
+  <div class="vibe-grid">
+    @for (vibe of vibes; track vibe.id) {
+      <button
+        class="vibe-card"
+        [class.selected]="selected() === vibe.id"
+        (click)="select(vibe.id)">
+        @if (selected() === vibe.id) {
+          <span class="check-badge">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <circle cx="8" cy="8" r="8" fill="#7B61FF"/>
+              <path d="M5 8L7 10L11 6" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        }
+        <span class="vibe-emoji">{{ vibe.emoji }}</span>
+        <span class="vibe-label" [class.active-label]="selected() === vibe.id">{{ vibe.label }}</span>
+      </button>
+    }
+  </div>
+
+  <!-- Map preview – fixed height with zone pill overlay -->
+  <div class="map-preview">
+    <div class="map-grid"></div>
+    <div class="map-overlay"></div>
+    <div class="zone-pill">
+      <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+        <circle cx="5" cy="5" r="4" fill="#22C55E"/>
+        <circle cx="5" cy="5" r="2" fill="white"/>
+      </svg>
+      <span>{{ zoneName }}</span>
+    </div>
+  </div>
+
+  <!-- CTA – below map, inside scroll -->
+  <button class="cta-btn" (click)="proceed()">
+    Set My Vibe &nbsp;
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="display:inline;vertical-align:middle">
+      <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" fill="white"/>
+    </svg>
+  </button>
+
+</div>

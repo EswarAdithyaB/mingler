@@ -1,0 +1,191 @@
+<div class="vibe-feed-root">
+  <!-- Header -->
+  <div class="vibe-header">
+    <button class="back-btn" (click)="goBackToZone()">← Zone</button>
+    <h1 class="header-title">Vibes</h1>
+    <button class="notif-btn" (click)="goNotifications()">🔔</button>
+  </div>
+
+  <!-- Main Tabs -->
+  <div class="main-tabs">
+    @for (tab of mainTabs; track tab.key) {
+      <button class="tab-btn"
+        [class.active]="activeMain() === tab.key"
+        (click)="activeMain.set(tab.key)">
+        {{ tab.label }}
+      </button>
+    }
+  </div>
+
+  <!-- Scrollable Content -->
+  <div class="vibe-content">
+    <!-- ALL VIBES TAB -->
+    @if (activeMain() === 'all') {
+      <div class="tab-content">
+        <!-- Vibe Channels -->
+        <div class="channels-section">
+          <h3 class="section-title">Active Channels</h3>
+          <div class="channels-list">
+            @for (ch of allVibes(); track ch.id) {
+              <div class="channel-card" [class.joined]="ch.joined">
+                <div class="channel-header">
+                  <span class="channel-icon">{{ ch.categoryIcon }}</span>
+                  <div class="channel-info">
+                    <h4 class="channel-name">{{ ch.title }}</h4>
+                    <span class="channel-category">{{ ch.category }}</span>
+                  </div>
+                  <span class="live-count">{{ ch.liveCount }}</span>
+                </div>
+                <p class="channel-desc">{{ ch.description }}</p>
+                <div class="channel-footer">
+                  <div class="channel-tags">
+                    @for (tag of ch.tags; track tag) {
+                      <span class="tag">{{ tag }}</span>
+                    }
+                  </div>
+                  <button class="join-btn" [class.joined]="ch.joined" (click)="joinVibe(ch)">
+                    {{ ch.joined ? '✓ Joined' : '+ Join' }}
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Stream Messages -->
+        <div class="stream-section">
+          <h3 class="section-title">Stream</h3>
+          <div class="messages-list">
+            @for (msg of streamMessages(); track msg.id) {
+              <div class="message-card" [class.mine]="msg.isMe">
+                <div class="msg-header">
+                  <span class="msg-avatar">{{ msg.avatarEmoji }}</span>
+                  <div class="msg-user">
+                    <span class="msg-username">{{ msg.user }}</span>
+                    <span class="msg-time">{{ msg.timeAgo }}</span>
+                  </div>
+                </div>
+                <p class="msg-text">{{ msg.text }}</p>
+                <div class="msg-reactions">
+                  <span class="reaction">👍 {{ msg.likes }}</span>
+                  <span class="reaction">💬 {{ msg.replies }}</span>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- MY VIBES TAB -->
+    @if (activeMain() === 'mine') {
+      <div class="tab-content">
+        @if (myActiveVibes().length === 0) {
+          <div class="empty-state">
+            <span class="empty-icon">🎧</span>
+            <p>Create your first vibe to get started</p>
+          </div>
+        }
+        <div class="vibes-grid">
+          @for (vibe of myActiveVibes(); track vibe.id) {
+            <div class="my-vibe-card" [class.live]="vibe.isLive">
+              <div class="vibe-card-header">
+                <span class="vibe-emoji">{{ vibe.avatarEmoji }}</span>
+                <div class="vibe-meta">
+                  <h4 class="vibe-title">{{ vibe.title }}</h4>
+                  @if (vibe.isLive) {
+                    <span class="live-badge">● LIVE</span>
+                  }
+                </div>
+              </div>
+              <p class="vibe-subtitle">{{ vibe.subtitle }}</p>
+              <div class="vibe-stats">
+                <span>{{ vibe.liveCount }} watching</span>
+                <span>{{ vibe.memberCount }} members</span>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- TRENDING TAB -->
+    @if (activeMain() === 'trending') {
+      <div class="tab-content">
+        <div class="trending-zones">
+          @for (zone of trendingZones(); track zone.id) {
+            <div class="trending-card" [ngStyle]="{ background: zone.bgGradient }">
+              <div class="zone-label">
+                @if (zone.type === 'hero') {
+                  <span class="label-badge hot">{{ zone.liveLabel }}</span>
+                } @else if (zone.type === 'match') {
+                  <span class="label-badge match">{{ zone.matchPct }}% MATCH</span>
+                } @else if (zone.type === 'live') {
+                  <span class="label-badge live">{{ zone.liveLabel }}</span>
+                }
+              </div>
+              <div class="zone-content">
+                <h3 class="zone-name">{{ zone.name }}</h3>
+                <p class="zone-subtitle">{{ zone.subtitle }}</p>
+              </div>
+              <div class="zone-footer">
+                <div class="zone-tags">
+                  @for (tag of zone.tags; track tag) {
+                    <span class="tag">{{ tag }}</span>
+                  }
+                </div>
+                <button class="zone-action-btn">Explore →</button>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- Floating Compose Button -->
+  <div class="compose-fab-container">
+    <button class="compose-fab" (click)="openCompose()">+ Post Vibe</button>
+  </div>
+
+  <!-- Compose Modal -->
+  @if (showCompose()) {
+    <div class="modal-backdrop" (click)="showCompose.set(false)">
+      <div class="compose-modal" (click)="$event.stopPropagation()">
+        <div class="compose-header">
+          <h2 class="compose-title">Share Your Vibe</h2>
+          <button class="compose-close" (click)="showCompose.set(false)">✕</button>
+        </div>
+
+        <!-- Vibe Type Selector -->
+        <div class="type-selector">
+          @for (vt of vibeTypes; track vt.key) {
+            <button class="type-btn"
+              [class.selected]="composeType() === vt.key"
+              (click)="composeType.set(vt.key)">
+              {{ vt.emoji }} {{ vt.label }}
+            </button>
+          }
+        </div>
+
+        <!-- Text Input -->
+        <textarea class="compose-ta" [(ngModel)]="composeText"
+          [placeholder]="getPlaceholder()"
+          maxlength="500"></textarea>
+
+        <!-- Anonymous Toggle -->
+        <div class="anon-row">
+          <label class="anon-label">Post Anonymously</label>
+          <div class="toggle-switch" (click)="composeAnon = !composeAnon">
+            <div class="toggle-thumb" [class.on]="composeAnon"></div>
+          </div>
+        </div>
+
+        <!-- Post Button -->
+        <button class="post-btn" [disabled]="!composeText.trim()" (click)="postVibe()">
+          Post 🚀
+        </button>
+      </div>
+    </div>
+  }
+</div>

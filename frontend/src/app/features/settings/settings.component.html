@@ -1,0 +1,114 @@
+<div class="settings-root">
+  <!-- Header -->
+  <div class="settings-header">
+    <button class="back-btn" (click)="goBack()">← Profile</button>
+    <h1 class="header-title">Settings</h1>
+    <button class="notif-btn" (click)="goNotifications()">🔔</button>
+  </div>
+
+  <!-- Scrollable content -->
+  <div class="settings-content">
+    <!-- User Info Section -->
+    <div class="info-section">
+      <div class="user-card">
+        <div class="user-header">
+          <div class="user-basic">
+            <h2 class="user-display-name">{{ displayName() }}</h2>
+            <p class="user-username">{{ '@' + username() }}</p>
+          </div>
+          <span class="vibe-badge">{{ vibeEmoji() }} {{ vibeBadge() }}</span>
+        </div>
+        <p class="user-email">{{ email() }}</p>
+        <p class="user-since">Member since {{ memberSince() }}</p>
+      </div>
+    </div>
+
+    <!-- Vibe Visibility -->
+    <div class="settings-section">
+      <h3 class="section-title">Your Vibe</h3>
+      <div class="vibe-display">
+        <span class="vibe-emoji-lg">{{ vibeEmoji() }}</span>
+        <div class="vibe-info">
+          <div class="vibe-label">{{ vibeLabel() }}</div>
+          <div class="vibe-desc">Your zone presence style</div>
+        </div>
+      </div>
+      <div class="option-group">
+        <label class="option-label">Visibility</label>
+        <div class="selector-group">
+          @for (opt of visibilityOptions; track opt.key) {
+            <button class="selector-btn"
+              [class.selected]="vibeVisibility() === opt.key"
+              (click)="updateVibeVisibility(opt.key)">
+              {{ opt.label }}
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Detection Radius -->
+    <div class="settings-section">
+      <h3 class="section-title">Detection Radius</h3>
+      <div class="radius-slider">
+        <div class="radius-display">{{ detectionRadius() }} meters</div>
+        <div class="radius-presets">
+          @for (preset of radiusPresets; track preset.label) {
+            <button class="preset-btn"
+              [class.active]="detectionRadius() === preset.val"
+              (click)="updateDetectionRadius(preset.val)">
+              {{ preset.label }}
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Privacy Settings -->
+    <div class="settings-section">
+      <h3 class="section-title">Privacy & Safety</h3>
+      <div class="toggles-list">
+        @for (toggle of privacyToggles; track toggle.key) {
+          <div class="toggle-item">
+            <div class="toggle-label">
+              <span class="toggle-title">{{ toggle.label }}</span>
+              @if (toggle.desc) {
+                <span class="toggle-desc">{{ toggle.desc }}</span>
+              }
+            </div>
+            <div class="toggle-control">
+              <input type="checkbox" [checked]="toggle.value" (change)="toggle.value = !toggle.value" />
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Notification Settings -->
+    <div class="settings-section">
+      <h3 class="section-title">Notifications</h3>
+      <div class="toggles-list">
+        @for (toggle of notifToggles; track toggle.key) {
+          <div class="toggle-item">
+            <div class="toggle-label">
+              <span class="toggle-title">{{ toggle.label }}</span>
+              @if (toggle.desc) {
+                <span class="toggle-desc">{{ toggle.desc }}</span>
+              }
+            </div>
+            <div class="toggle-control">
+              <input type="checkbox" [checked]="toggle.value" (change)="toggle.value = !toggle.value" />
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Logout -->
+    <div class="settings-section">
+      <button class="logout-btn" [disabled]="loggingOut()" (click)="logout()">
+        {{ loggingOut() ? '⏳ Logging out...' : '🚪 Logout' }}
+      </button>
+    </div>
+  </div>
+</div>

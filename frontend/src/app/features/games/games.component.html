@@ -1,0 +1,119 @@
+<div class="games-root">
+  <!-- Header -->
+  <div class="games-header">
+    <button class="back-btn" (click)="goBackToZone()">← Zone</button>
+    <h1 class="games-title">Games in {{ zoneName() }}</h1>
+    <button class="notif-btn" (click)="goNotifications()">🔔</button>
+  </div>
+
+  <!-- Game Type Filter -->
+  <div class="game-filter">
+    @for (gt of gameTypes; track gt.key) {
+      <button class="filter-btn"
+        [class.active]="activeGameType() === gt.key"
+        (click)="activeGameType.set(gt.key)">
+        <span class="filter-icon">{{ gt.icon }}</span>
+        <span class="filter-name">{{ gt.name }}</span>
+      </button>
+    }
+  </div>
+
+  <!-- Game Invite Alert -->
+  @if (showInvite()) {
+    <div class="invite-card">
+      <div class="invite-content">
+        <span class="invite-icon">🎮</span>
+        <div class="invite-text">
+          <div class="invite-title">Game Invitation!</div>
+          <div class="invite-desc">Symmetry_Zero invited you to Ludo</div>
+        </div>
+      </div>
+      <div class="invite-actions">
+        <button class="invite-btn accept" (click)="acceptInvite()">Accept</button>
+        <button class="invite-btn decline" (click)="showInvite.set(false)">Decline</button>
+      </div>
+    </div>
+  }
+
+  <!-- Active Games List -->
+  <div class="games-list">
+    @if (activeGames().length === 0) {
+      <div class="empty-state">
+        <span class="empty-icon">🎯</span>
+        <p class="empty-text">No active games. Create one to get started!</p>
+      </div>
+    }
+
+    @for (game of activeGames(); track game.id) {
+      <div class="game-card">
+        <div class="game-card-header">
+          <div class="game-type">
+            <span class="game-icon">{{ getGameIcon(game.type) }}</span>
+            <span class="game-name">{{ getGameName(game.type) }}</span>
+          </div>
+          <span class="game-status" [class.waiting]="game.status === 'waiting'" [class.playing]="game.status === 'playing'">
+            {{ game.status === 'waiting' ? 'Waiting' : 'Playing' }}
+          </span>
+        </div>
+        <div class="game-card-body">
+          <div class="host-info">
+            Host: <strong>{{ game.hostName }}</strong>
+          </div>
+          <div class="players-info">
+            <span>👥 {{ game.players.length }}/{{ game.maxPlayers }} players</span>
+          </div>
+        </div>
+        <div class="game-card-footer">
+          @if (hasUserJoined(game)) {
+            <button class="action-btn joined" disabled>✓ Joined</button>
+          } @else {
+            <button class="action-btn join" (click)="joinGame(game)">Join Game</button>
+          }
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- Create Game Button -->
+  <div class="create-fab-container">
+    <button class="create-fab" (click)="showCreateModal.set(true)">+ Create Game</button>
+  </div>
+
+  <!-- Create Game Modal -->
+  @if (showCreateModal()) {
+    <div class="modal-backdrop" (click)="showCreateModal.set(false)">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h2 class="modal-title">Create New Game</h2>
+          <button class="modal-close" (click)="showCreateModal.set(false)">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Game Type</label>
+            <div class="game-type-selector">
+              @for (gt of gameTypes.slice(1); track gt.key) {
+                <button class="type-option"
+                  [class.selected]="selectedGameType() === gt.key"
+                  (click)="selectedGameType.set(gt.key)">
+                  {{ gt.icon }} {{ gt.name }}
+                </button>
+              }
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Max Players: {{ playerCount() }}</label>
+            <div class="player-adjuster">
+              <button class="adj-btn" (click)="adjustPlayers(-1)">−</button>
+              <span class="player-display">{{ playerCount() }}</span>
+              <button class="adj-btn" (click)="adjustPlayers(1)">+</button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="modal-btn secondary" (click)="showCreateModal.set(false)">Cancel</button>
+          <button class="modal-btn primary" (click)="createGame()">Create</button>
+        </div>
+      </div>
+    </div>
+  }
+</div>
