@@ -11,7 +11,7 @@ import { Zone } from '../../core/models';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './map.component.html',
-  styleUrls: ['./map.component.scss']
+  styleUrl: './map.component.scss'
 })
 export class MapComponent implements OnInit, OnDestroy {
   private paramSub?: Subscription;

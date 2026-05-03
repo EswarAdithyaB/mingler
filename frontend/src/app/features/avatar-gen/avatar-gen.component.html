@@ -1,100 +1,185 @@
-<div class="avatar-gen-root">
-  <!-- IDLE STATE: Choose action -->
-  @if (stage() === 'idle') {
-    <div class="stage idle-stage">
-      <div class="idle-content">
-        <h1 class="title">Create Your Avatar</h1>
-        <p class="subtitle">Transform your selfie into an AI-generated avatar</p>
-        <button class="action-btn primary" (click)="startCamera()">
-          📸 Start Camera
-        </button>
-        <button class="action-btn secondary" (click)="goBack()">
-          ← Back
-        </button>
-      </div>
-    </div>
-  }
+<div class="root">
 
-  <!-- CAMERA STATE: Take a selfie -->
-  @if (stage() === 'camera') {
-    <div class="stage camera-stage">
-      <div class="camera-container">
-        <video #videoEl autoplay playsinline></video>
-        <canvas #canvasEl hidden></canvas>
-      </div>
-      <div class="camera-controls">
-        <button class="fab-btn" (click)="takeSnapshot()">📸</button>
-        <button class="icon-btn" (click)="flipCamera()">🔄</button>
-        <button class="icon-btn close" (click)="stopCamera()">✕</button>
-      </div>
+  <!-- ── HEADER ── -->
+  <div class="header">
+    <button class="back-btn" (click)="goBack()">
+      <svg width="8" height="14" viewBox="0 0 8 14" fill="none">
+        <path d="M7 1L1 7L7 13" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <div class="header-center">
+      <h2 class="header-title">Avatar Generator</h2>
+      <span class="header-sub">AI-powered animated portrait</span>
     </div>
-  }
+    <div style="width:36px"></div>
+  </div>
 
-  <!-- PREVIEW STATE: Review the selfie -->
-  @if (stage() === 'preview') {
-    <div class="stage preview-stage">
-      <div class="preview-container">
-        <img [src]="selfieDataUrl()" alt="Your selfie preview" />
-      </div>
-      <div class="preview-controls">
-        <button class="action-btn primary" (click)="generate()">
-          ✨ Generate Avatar
-        </button>
-        <button class="action-btn secondary" (click)="retake()">
-          ↻ Retake Photo
-        </button>
-      </div>
-    </div>
-  }
+  <!-- ── BODY ── -->
+  <div class="body">
 
-  <!-- GENERATING STATE: Show progress -->
-  @if (stage() === 'generating') {
-    <div class="stage generating-stage">
-      <div class="generating-content">
-        <h2 class="gen-title">Generating Your Avatar</h2>
-        <div class="steps-list">
-          @for (step of genSteps; track step.label) {
-            <div class="step" [class.active]="step.active" [class.done]="step.done">
-              <span class="step-dot"></span>
-              <span class="step-label">{{ step.label }}</span>
+    <!-- ════ IDLE — intro card ════ -->
+    @if (stage() === 'idle') {
+      <div class="intro-card animate-up">
+        <div class="ai-orb">
+          <div class="orb-ring r1"></div>
+          <div class="orb-ring r2"></div>
+          <span class="orb-emoji">✨</span>
+        </div>
+        <h3 class="intro-title">Create Your Animated Avatar</h3>
+        <p class="intro-desc">
+          Take a selfie and our AI will generate a stunning animated portrait
+          that closely matches your facial features.
+        </p>
+        <div class="steps-row">
+          <div class="step"><span class="step-num">1</span><span class="step-label">Selfie</span></div>
+          <div class="step-arrow">›</div>
+          <div class="step"><span class="step-num">2</span><span class="step-label">AI Magic</span></div>
+          <div class="step-arrow">›</div>
+          <div class="step"><span class="step-num">3</span><span class="step-label">Avatar</span></div>
+        </div>
+        <button class="primary-btn" (click)="startCamera()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+            <circle cx="12" cy="13" r="4" stroke="white" stroke-width="2"/>
+          </svg>
+          Open Camera
+        </button>
+      </div>
+    }
+
+    <!-- ════ CAMERA — live feed ════ -->
+    @if (stage() === 'camera') {
+      <div class="camera-wrap animate-up">
+        <div class="camera-frame">
+          <video #videoEl class="video-feed" autoplay playsinline muted></video>
+          <!-- face guide overlay -->
+          <div class="face-guide">
+            <div class="guide-oval"></div>
+            <span class="guide-hint">Align your face inside the oval</span>
+          </div>
+          <!-- corner accents -->
+          <div class="corner tl"></div>
+          <div class="corner tr"></div>
+          <div class="corner bl"></div>
+          <div class="corner br"></div>
+        </div>
+        <div class="camera-actions">
+          <button class="ghost-btn" (click)="stopCamera()">Cancel</button>
+          <button class="shutter-btn" (click)="takeSnapshot()">
+            <div class="shutter-inner"></div>
+          </button>
+          <button class="ghost-btn" (click)="flipCamera()">Flip</button>
+        </div>
+      </div>
+    }
+
+    <!-- ════ PREVIEW — review selfie ════ -->
+    @if (stage() === 'preview') {
+      <div class="preview-wrap animate-up">
+        <div class="preview-frame">
+          <img [src]="selfieDataUrl()" class="preview-img" alt="Selfie preview"/>
+          <div class="preview-badge">Your Selfie</div>
+        </div>
+        <p class="preview-hint">Looking good! Generate your animated avatar now.</p>
+        <div class="prompt-box">
+          <span class="prompt-label">AI PROMPT</span>
+          <p class="prompt-text">{{ prompt }}</p>
+        </div>
+        <div class="preview-actions">
+          <button class="ghost-btn" (click)="retake()">Retake</button>
+          <button class="primary-btn" (click)="generate()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="white"/>
+            </svg>
+            Generate Avatar
+          </button>
+        </div>
+      </div>
+    }
+
+    <!-- ════ GENERATING — loading ════ -->
+    @if (stage() === 'generating') {
+      <div class="generating-wrap animate-up">
+        <div class="gen-orb">
+          <div class="gen-ring gr1"></div>
+          <div class="gen-ring gr2"></div>
+          <div class="gen-ring gr3"></div>
+          <span class="gen-icon">🎨</span>
+        </div>
+        <h3 class="gen-title">Generating Your Avatar</h3>
+        <p class="gen-sub">Transforming your selfie into an avatar…</p>
+        <div class="progress-track">
+          <div class="progress-fill"></div>
+        </div>
+        <div class="gen-steps">
+          @for (s of genSteps; track s.label) {
+            <div class="gen-step" [class.active]="s.active" [class.done]="s.done">
+              <span class="gs-dot"></span>
+              <span class="gs-label">{{ s.label }}</span>
             </div>
           }
         </div>
       </div>
-    </div>
-  }
+    }
 
-  <!-- RESULT STATE: Show generated avatar -->
-  @if (stage() === 'result') {
-    <div class="stage result-stage">
-      <div class="result-container">
-        <img [src]="resultUrl()" alt="Generated avatar" />
+    <!-- ════ RESULT — show avatar ════ -->
+    @if (stage() === 'result') {
+      <div class="result-wrap animate-up">
+        <div class="result-header-row">
+          <span class="result-badge">✨ Avatar Ready</span>
+        </div>
+        <div class="compare-row">
+          <!-- Selfie thumb -->
+          <div class="compare-card">
+            <img [src]="selfieDataUrl()" class="compare-img" alt="Selfie"/>
+            <span class="compare-label">You</span>
+          </div>
+          <div class="compare-arrow">→</div>
+          <!-- Generated avatar -->
+          <div class="compare-card result-card">
+            <img [src]="resultUrl()" class="compare-img" alt="Generated avatar"/>
+            <span class="compare-label">Avatar</span>
+          </div>
+        </div>
+        <!-- Full result -->
+        <div class="result-full-wrap">
+          <img [src]="resultUrl()" class="result-full-img" alt="Your avatar"/>
+          <div class="result-glow"></div>
+        </div>
+        <div class="result-actions">
+          <button class="ghost-btn" (click)="retake()">New Selfie</button>
+          <button class="primary-btn" (click)="saveAvatar()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Use as Avatar
+          </button>
+        </div>
       </div>
-      <div class="result-controls">
-        <button class="action-btn primary" (click)="saveAvatar()">
-          ⬇️ Download Avatar
-        </button>
-        <button class="action-btn secondary" (click)="retake()">
-          ↻ Create Another
-        </button>
-      </div>
-    </div>
-  }
+    }
 
-  <!-- ERROR STATE: Show error message -->
-  @if (stage() === 'error') {
-    <div class="stage error-stage">
-      <div class="error-content">
-        <span class="error-icon">⚠️</span>
-        <h2 class="error-title">Oops!</h2>
+    <!-- ════ ERROR ════ -->
+    @if (stage() === 'error') {
+      <div class="error-wrap animate-up">
+        <div class="error-icon">⚠️</div>
+        <h3 class="error-title">Generation Failed</h3>
         <p class="error-msg">{{ errorMsg() }}</p>
-        <button class="action-btn primary" (click)="retake()">
-          ↻ Try Again
-        </button>
-        <button class="action-btn secondary" (click)="goBack()">
-          ← Go Back
-        </button>
+        @if (!hasToken()) {
+          <div class="token-guide">
+            <p class="token-title">🔑 Setup required:</p>
+            <ol class="token-steps">
+              <li>Go to <strong>huggingface.co/settings/tokens</strong></li>
+              <li>Click <strong>"New token"</strong> → Read access</li>
+              <li>Copy and paste it into <strong>avatar-gen.component.ts</strong> → <code>HF_TOKEN</code></li>
+            </ol>
+          </div>
+        }
+        <button class="primary-btn" (click)="retake()">Try Again</button>
       </div>
-    </div>
-  }
+    }
+
+  </div>
+
+  <!-- hidden canvas for snapshot -->
+  <canvas #canvasEl style="display:none"></canvas>
 </div>

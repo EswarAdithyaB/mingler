@@ -1,95 +1,176 @@
-<div class="map-root">
-  <!-- Loading spinner -->
-  @if (loading()) {
-    <div class="loading-state">
-      <div class="spinner"></div>
-      <p>Detecting nearby zones...</p>
+<div class="screen gradient-bg">
+
+  <!-- ── Header ─────────────────────────────────── -->
+  <div class="screen-header">
+    <button class="header-icon-btn">🔍</button>
+    <div class="header-center">
+      <h3>ZoneApp</h3>
+      <span class="location-tag">📍 {{ locationName() }}</span>
     </div>
-  } @else {
-    <!-- Main map/visualization -->
-    <div class="map-container">
-      <!-- Background map -->
-      <div class="map-bg">
-        @for (zone of zones(); track zone.id; let i = $index) {
-          <div class="zone-marker" [style.left]="getMarkerLeft(i)" [style.top]="getMarkerTop(i)">
-            <div class="marker-pulse"></div>
-            <span class="marker-icon">📍</span>
-          </div>
-        }
-      </div>
+    <div class="header-right-actions">
+      <button class="header-icon-btn" (click)="refreshZones()" title="Refresh">🔄</button>
+      <button class="header-icon-btn notif-btn" title="Notifications" (click)="goNotifications()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="rgba(255,255,255,0.6)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="rgba(255,255,255,0.6)" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <span class="notif-dot"></span>
+      </button>
+    </div>
+  </div>
 
-      <!-- Top info bar -->
-      <div class="map-top-bar">
-        <div class="location-info">
-          <span class="location-icon">📍</span>
-          <span class="location-name">{{ locationName() }}</span>
-        </div>
-        <button class="notif-btn" (click)="goNotifications()">🔔</button>
-      </div>
-
-      <!-- Warning banner -->
-      @if (warningBanner()) {
-        <div class="warning-banner">
-          <span class="warning-icon">⚠️</span>
-          <span class="warning-text">{{ warningBanner() }}</span>
-          <button class="warning-close" (click)="dismissWarning()">✕</button>
-        </div>
-      }
-
-      <!-- Active zone badge -->
-      @if (hasActiveSession()) {
-        <div class="active-zone-badge">
-          <span class="badge-dot"></span>
-          <span class="badge-text">In {{ activeZoneName() }}</span>
-          <button class="badge-action" (click)="resumeZone()">Resume</button>
-        </div>
-      }
-
-      <!-- Zone cards panel -->
-      <div class="zones-panel" [class.expanded]="panelExpanded()">
-        <!-- Panel handle -->
-        <div class="panel-handle"></div>
-
-        <!-- Panel header -->
-        <div class="panel-header">
-          <h2 class="panel-title">Nearby Zones</h2>
-          <button class="refresh-btn" (click)="refreshZones()">🔄</button>
-        </div>
-
-        <!-- Zone cards -->
-        <div class="zones-scroll">
-          @for (zone of zones(); track zone.id) {
-            <div class="zone-card" [id]="'zone-card-' + zone.id"
-              [class.selected]="selectedZone()?.id === zone.id"
-              (click)="selectZone(zone)">
-
-              <!-- Card header -->
-              <div class="card-header">
-                <h3 class="card-title">{{ zone.name }}</h3>
-                <span class="card-distance">{{ getDistance(zone) }} km</span>
-              </div>
-
-              <!-- Card info -->
-              <p class="card-description">{{ zone.description }}</p>
-
-              <!-- Tags -->
-              <div class="card-tags">
-                @for (tag of getZoneTags(zone); track tag) {
-                  <span class="tag">{{ tag }}</span>
-                }
-              </div>
-
-              <!-- Card footer -->
-              <div class="card-footer">
-                <span class="online-count">{{ zone.activeUsers || 0 }} online</span>
-                <button class="enter-btn" (click)="enterZone(zone, $event)">
-                  ENTER
-                </button>
-              </div>
-            </div>
-          }
-        </div>
-      </div>
+  <!-- ── Zone warning banner ───────────────────────────── -->
+  @if (warningBanner()) {
+    <div class="zone-warning-banner" (click)="dismissWarning()">
+      <span class="warn-icon">⚠️</span>
+      <span class="warn-text">{{ warningBanner() }}</span>
+      <button class="warn-close">✕</button>
     </div>
   }
+
+  <!-- ── Active zone pill (session exists) ─────────────── -->
+  @if (hasActiveSession()) {
+    <div class="active-zone-pill" (click)="resumeZone()">
+      <span class="azp-dot"></span>
+      <span class="azp-text">Back to <strong>{{ activeZoneName() }}</strong></span>
+      <span class="azp-arrow">›</span>
+    </div>
+  }
+
+  <!-- ── Map Canvas (fills all remaining vertical space) ── -->
+  <div class="map-area">
+
+    <!-- Loading / Radar scan -->
+    @if (loading()) {
+      <div class="map-loading">
+        <div class="radar-ring ring-1"></div>
+        <div class="radar-ring ring-2"></div>
+        <div class="radar-ring ring-3"></div>
+        <div class="radar-dot"></div>
+        <p class="scan-label">Scanning for zones...</p>
+      </div>
+    } @else {
+      <!-- Map grid background + markers -->
+      <div class="map-bg">
+        @for (zone of zones(); track zone.id; let i = $index) {
+          <div class="map-zone-marker"
+            [style.left]="getMarkerLeft(i)"
+            [style.top]="getMarkerTop(i)"
+            (click)="selectZone(zone)">
+            <div class="marker-ring" [class.active]="selectedZone()?.id === zone.id"></div>
+            <div class="marker-dot">{{ zone.coverEmoji }}</div>
+            <div class="marker-label">{{ zone.name }}</div>
+          </div>
+        }
+        <div class="user-marker">
+          <div class="user-pulse"></div>
+          <div class="user-dot">🧍</div>
+        </div>
+      </div>
+    }
+
+    <!-- No Zones empty state -->
+    @if (!loading() && zones().length === 0) {
+      <div class="empty-state">
+        <div class="empty-map-bg"></div>
+        <div class="empty-card animate-slide-up">
+          <div class="empty-illustration">
+            <div class="illus-ring illus-ring-outer"></div>
+            <div class="illus-ring illus-ring-mid"></div>
+            <div class="illus-figure">🧑‍🎒</div>
+          </div>
+          <h2 class="empty-title">No Zones Near You</h2>
+          <p class="empty-sub">Be the first to discover or create a zone in your area</p>
+          <div class="empty-actions">
+            <button class="btn btn-primary btn-full empty-btn" (click)="refreshZones()">
+              Explore Further →
+            </button>
+            <button class="btn btn-outline btn-full empty-btn" (click)="createZone()">
+              Create a Zone +
+            </button>
+          </div>
+        </div>
+        <div class="map-fabs">
+          <button class="fab" title="Re-centre">🎯</button>
+          <button class="fab" title="Layers">◈</button>
+        </div>
+      </div>
+    }
+
+    <!-- ── Bottom Sheet (absolutely overlays map) ──────── -->
+    @if (!loading() && zones().length > 0) {
+      <div class="zone-sheet" [class.expanded]="panelExpanded()"
+        (touchstart)="onTouchStart($event)"
+        (touchend)="onTouchEnd($event)">
+
+        <!-- Drag handle -->
+        <div class="sheet-handle-row" (click)="togglePanel()">
+          <div class="panel-handle"></div>
+        </div>
+
+        <!-- Sheet header -->
+        <div class="panel-header">
+          <div class="panel-title-row">
+            <span class="live-pill">LIVE DISCOVERIES</span>
+          </div>
+          <div class="panel-heading-row">
+            <h4 class="panel-heading">Nearby Zones</h4>
+            <button class="all-btn">All →</button>
+          </div>
+        </div>
+
+        <!-- Horizontal scrollable cards -->
+        <div class="zone-list-scroll">
+          <div class="zone-list">
+            @for (zone of zones(); track zone.id) {
+              <div class="zone-card"
+                [class.selected]="selectedZone()?.id === zone.id"
+                [id]="'zone-card-' + zone.id"
+                (click)="selectZone(zone)">
+
+                <div class="zc-top">
+                  <div class="zc-info">
+                    <div class="zc-name">{{ zone.name }}</div>
+                    <div class="zc-distance">
+                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                        <circle cx="5" cy="5" r="4" fill="#22C55E"/>
+                        <circle cx="5" cy="5" r="2" fill="white"/>
+                      </svg>
+                      0.{{ getDistance(zone) }} miles away
+                    </div>
+                  </div>
+                  <div class="zc-emoji-badge">{{ zone.coverEmoji }}</div>
+                </div>
+
+                <div class="zc-avatars">
+                  <div class="avatar-stack">
+                    <span class="av">🧑</span>
+                    <span class="av">👩</span>
+                    <span class="av av-count">+{{ zone.activeUsers }}</span>
+                  </div>
+                  <span class="active-dot">
+                    <span class="dot-green"></span> Active now
+                  </span>
+                </div>
+
+                <div class="zc-tags">
+                  @for (tag of getZoneTags(zone); track tag) {
+                    <span class="zc-tag">{{ tag }}</span>
+                  }
+                </div>
+
+                <button class="enter-btn" (click)="enterZone(zone, $event)">
+                  ENTER ZONE
+                </button>
+
+              </div>
+            }
+            <div class="list-end-spacer"></div>
+          </div>
+        </div>
+
+      </div>
+    }
+
+  </div><!-- /map-area -->
 </div>

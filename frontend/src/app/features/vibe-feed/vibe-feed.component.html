@@ -1,191 +1,337 @@
-<div class="vibe-feed-root">
-  <!-- Header -->
-  <div class="vibe-header">
-    <button class="back-btn" (click)="goBackToZone()">← Zone</button>
-    <h1 class="header-title">Vibes</h1>
-    <button class="notif-btn" (click)="goNotifications()">🔔</button>
-  </div>
+<div class="screen gradient-bg">
 
-  <!-- Main Tabs -->
-  <div class="main-tabs">
-    @for (tab of mainTabs; track tab.key) {
-      <button class="tab-btn"
-        [class.active]="activeMain() === tab.key"
-        (click)="activeMain.set(tab.key)">
-        {{ tab.label }}
+  <!-- ═══════════════════ HEADER ═══════════════════ -->
+  <div class="screen-header">
+    @if (fromZoneId()) {
+      <button class="back-btn" (click)="goBackToZone()">← Back</button>
+    } @else {
+      <div class="header-logo">
+        <span class="logo-dot"></span>
+        <span class="logo-text">ZoneApp</span>
+      </div>
+    }
+    <div class="header-actions">
+      <button class="hdr-btn">🔍</button>
+      <button class="hdr-btn" (click)="onRefresh()" title="Refresh">🔄</button>
+      <button class="hdr-btn hdr-bell" title="Notifications" (click)="goNotifications()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="rgba(255,255,255,0.6)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="rgba(255,255,255,0.6)" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <span class="notif-dot"></span>
       </button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ MAIN TABS ═══════════════════ -->
+  <div class="main-tabs">
+    @for (t of mainTabs; track t.key) {
+      <button class="main-tab" [class.active]="activeMain() === t.key"
+        (click)="activeMain.set(t.key)">{{ t.label }}</button>
     }
   </div>
 
-  <!-- Scrollable Content -->
-  <div class="vibe-content">
-    <!-- ALL VIBES TAB -->
-    @if (activeMain() === 'all') {
-      <div class="tab-content">
-        <!-- Vibe Channels -->
-        <div class="channels-section">
-          <h3 class="section-title">Active Channels</h3>
-          <div class="channels-list">
-            @for (ch of allVibes(); track ch.id) {
-              <div class="channel-card" [class.joined]="ch.joined">
-                <div class="channel-header">
-                  <span class="channel-icon">{{ ch.categoryIcon }}</span>
-                  <div class="channel-info">
-                    <h4 class="channel-name">{{ ch.title }}</h4>
-                    <span class="channel-category">{{ ch.category }}</span>
-                  </div>
-                  <span class="live-count">{{ ch.liveCount }}</span>
-                </div>
-                <p class="channel-desc">{{ ch.description }}</p>
-                <div class="channel-footer">
-                  <div class="channel-tags">
-                    @for (tag of ch.tags; track tag) {
-                      <span class="tag">{{ tag }}</span>
-                    }
-                  </div>
-                  <button class="join-btn" [class.joined]="ch.joined" (click)="joinVibe(ch)">
-                    {{ ch.joined ? '✓ Joined' : '+ Join' }}
-                  </button>
-                </div>
-              </div>
-            }
-          </div>
-        </div>
+  <!-- ═══════════════════ TAB: ALL VIBES ═══════════════════ -->
+  @if (activeMain() === 'all') {
+    <div class="screen-content">
 
-        <!-- Stream Messages -->
-        <div class="stream-section">
-          <h3 class="section-title">Stream</h3>
-          <div class="messages-list">
-            @for (msg of streamMessages(); track msg.id) {
-              <div class="message-card" [class.mine]="msg.isMe">
-                <div class="msg-header">
-                  <span class="msg-avatar">{{ msg.avatarEmoji }}</span>
-                  <div class="msg-user">
-                    <span class="msg-username">{{ msg.user }}</span>
-                    <span class="msg-time">{{ msg.timeAgo }}</span>
-                  </div>
-                </div>
-                <p class="msg-text">{{ msg.text }}</p>
-                <div class="msg-reactions">
-                  <span class="reaction">👍 {{ msg.likes }}</span>
-                  <span class="reaction">💬 {{ msg.replies }}</span>
-                </div>
-              </div>
-            }
-          </div>
-        </div>
-      </div>
-    }
-
-    <!-- MY VIBES TAB -->
-    @if (activeMain() === 'mine') {
-      <div class="tab-content">
-        @if (myActiveVibes().length === 0) {
-          <div class="empty-state">
-            <span class="empty-icon">🎧</span>
-            <p>Create your first vibe to get started</p>
-          </div>
-        }
-        <div class="vibes-grid">
-          @for (vibe of myActiveVibes(); track vibe.id) {
-            <div class="my-vibe-card" [class.live]="vibe.isLive">
-              <div class="vibe-card-header">
-                <span class="vibe-emoji">{{ vibe.avatarEmoji }}</span>
-                <div class="vibe-meta">
-                  <h4 class="vibe-title">{{ vibe.title }}</h4>
-                  @if (vibe.isLive) {
-                    <span class="live-badge">● LIVE</span>
-                  }
-                </div>
-              </div>
-              <p class="vibe-subtitle">{{ vibe.subtitle }}</p>
-              <div class="vibe-stats">
-                <span>{{ vibe.liveCount }} watching</span>
-                <span>{{ vibe.memberCount }} members</span>
-              </div>
+      <!-- Featured vibe card -->
+      @for (ch of allVibes(); track ch.id; let i = $index) {
+        @if (i === 0) {
+          <div class="featured-vibe-card">
+            <div class="fvc-badges">
+              <span class="badge-live">{{ ch.liveCount }} ACTIVE</span>
+              <span class="badge-category">{{ ch.category }}</span>
             </div>
-          }
-        </div>
-      </div>
-    }
-
-    <!-- TRENDING TAB -->
-    @if (activeMain() === 'trending') {
-      <div class="tab-content">
-        <div class="trending-zones">
-          @for (zone of trendingZones(); track zone.id) {
-            <div class="trending-card" [ngStyle]="{ background: zone.bgGradient }">
-              <div class="zone-label">
-                @if (zone.type === 'hero') {
-                  <span class="label-badge hot">{{ zone.liveLabel }}</span>
-                } @else if (zone.type === 'match') {
-                  <span class="label-badge match">{{ zone.matchPct }}% MATCH</span>
-                } @else if (zone.type === 'live') {
-                  <span class="label-badge live">{{ zone.liveLabel }}</span>
+            <h2 class="fvc-title">{{ ch.title }}</h2>
+            <p class="fvc-desc">{{ ch.description }}</p>
+            <div class="fvc-footer">
+              <button class="btn-join-vibe" (click)="joinVibe(ch)">
+                {{ ch.joined ? '✓ Joined' : 'Join Vibe' }}
+              </button>
+              <div class="fvc-members">
+                @for (m of ch.members.slice(0,4); track m) {
+                  <div class="mini-avatar">{{ m }}</div>
+                }
+                @if (ch.memberCount > 4) {
+                  <div class="mini-avatar extra">+{{ ch.memberCount - 4 }}</div>
                 }
               </div>
-              <div class="zone-content">
-                <h3 class="zone-name">{{ zone.name }}</h3>
-                <p class="zone-subtitle">{{ zone.subtitle }}</p>
+            </div>
+            <!-- Recent activity mini-feed -->
+            <div class="recent-activity">
+              <div class="ra-label">Recent Activity</div>
+              @for (msg of ch.recentMessages; track msg.user) {
+                <div class="ra-row">
+                  <span class="ra-user">{{ msg.user }}</span>
+                  <span class="ra-text">"{{ msg.text }}"</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Daily Spark card (after 1st channel) -->
+        @if (i === 1) {
+          <div class="daily-spark-card">
+            <div class="spark-left">
+              <span class="spark-icon">✦</span>
+              <div>
+                <div class="spark-label">DAILY SPARK</div>
+                <div class="spark-text">Start a vibe about <strong>'{{ sparkTopic }}'</strong> today.</div>
               </div>
-              <div class="zone-footer">
-                <div class="zone-tags">
-                  @for (tag of zone.tags; track tag) {
+            </div>
+            <button class="btn-spark" (click)="openCompose()">→</button>
+          </div>
+        }
+
+        <!-- Regular vibe list cards -->
+        @if (i >= 1) {
+          <div class="vibe-list-card" (click)="joinVibe(ch)">
+            <div class="vlc-left">
+              <div class="vlc-icon-wrap">{{ ch.categoryIcon }}</div>
+              <div class="vlc-info">
+                <div class="vlc-title">{{ ch.title }}</div>
+                <p class="vlc-desc">{{ ch.description }}</p>
+                <div class="vlc-tags">
+                  @for (tag of ch.tags; track tag) {
                     <span class="tag">{{ tag }}</span>
                   }
                 </div>
-                <button class="zone-action-btn">Explore →</button>
               </div>
             </div>
-          }
+            <div class="vlc-right">
+              <span class="badge-live-sm">{{ ch.liveCount }} LIVE</span>
+              <span class="vlc-arrow">›</span>
+            </div>
+          </div>
+        }
+      }
+
+      <!-- ── Vibe Stream ── -->
+      <div class="vibe-stream-section">
+        <div class="vs-header">
+          <span class="vs-title">Vibe Stream</span>
+          <span class="vs-live-pill">● LIVE UPDATES</span>
+        </div>
+        @for (msg of streamMessages(); track msg.id) {
+          <div class="stream-msg" [class.me]="msg.isMe">
+            @if (!msg.isMe) {
+              <div class="sm-avatar">{{ msg.avatarEmoji }}</div>
+              <div class="sm-body">
+                <div class="sm-header-row">
+                  <span class="sm-user">{{ msg.user }}</span>
+                  <span class="sm-time">{{ msg.timeAgo }}</span>
+                </div>
+                <div class="sm-text">{{ msg.text }}</div>
+                <div class="sm-actions">
+                  <span class="sm-react">❤️ {{ msg.likes }}</span>
+                  <span class="sm-react">💬 {{ msg.replies }}</span>
+                </div>
+              </div>
+            } @else {
+              <div class="sm-me-bubble">
+                <div class="sm-text">{{ msg.text }}</div>
+              </div>
+              <div class="sm-me-avatar">{{ msg.avatarEmoji }}</div>
+            }
+          </div>
+        }
+      </div>
+
+    </div>
+    <!-- Share Vibe FAB -->
+    <button class="compose-fab" (click)="openCompose()">✦ Share Vibe</button>
+  }
+
+  <!-- ═══════════════════ TAB: MY VIBES ═══════════════════ -->
+  @if (activeMain() === 'mine') {
+    <div class="screen-content">
+
+      <!-- Active Vibes header -->
+      <div class="section-header-row">
+        <span class="section-title">Active Vibes</span>
+        <span class="live-now-badge">{{ myActiveVibes().length }} LIVE NOW</span>
+      </div>
+
+      @for (v of myActiveVibes(); track v.id) {
+        <div class="active-vibe-row">
+          <div class="avr-avatar">{{ v.avatarEmoji }}</div>
+          <div class="avr-body">
+            <div class="avr-top">
+              <span class="avr-title">{{ v.title }}</span>
+              @if (v.isLive) { <span class="live-pulse-dot"></span> }
+              <span class="avr-time">{{ v.timestamp }}</span>
+            </div>
+            <div class="avr-sub">{{ v.subtitle }}</div>
+            <div class="avr-meta">
+              @if (v.isLive) {
+                <span class="avr-live">{{ v.liveCount }} VIBING</span>
+              } @else {
+                <span class="avr-members">{{ v.memberCount }} MEMBERS</span>
+              }
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Squads section -->
+      <div class="section-header-row" style="margin-top:20px">
+        <span class="section-title">Your Squads</span>
+        <button class="see-all-btn">SEE ALL</button>
+      </div>
+
+      <div class="squads-row">
+        @for (sq of mySquads(); track sq.id) {
+          <div class="squad-card" [style.border-color]="sq.color + '55'">
+            <div class="squad-orb" [style.background]="sq.color + '22'"
+              [style.border-color]="sq.color + '66'">
+              <span class="squad-emoji">{{ sq.emoji }}</span>
+            </div>
+            <div class="squad-name">{{ sq.name }}</div>
+            <div class="squad-members">{{ sq.memberCount }} MEMBERS</div>
+          </div>
+        }
+      </div>
+
+      <!-- Start a new Vibe CTA -->
+      <div class="new-vibe-cta">
+        <div class="nvc-left">
+          <div class="nvc-icon">✦</div>
+          <div>
+            <div class="nvc-title">Start a new Vibe</div>
+            <div class="nvc-sub">Gather your squad or find new ones.</div>
+          </div>
+        </div>
+        <button class="nvc-plus" (click)="openCompose()">+</button>
+      </div>
+
+    </div>
+  }
+
+  <!-- ═══════════════════ TAB: TRENDING ═══════════════════ -->
+  @if (activeMain() === 'trending') {
+    <div class="screen-content">
+
+      <!-- Live Pulse header -->
+      <div class="live-pulse-header">
+        <span class="lph-dot">●</span>
+        <span class="lph-text">LIVE PULSE</span>
+      </div>
+
+      @for (zone of trendingZones(); track zone.id) {
+
+        <!-- Hero trending card -->
+        @if (zone.type === 'hero') {
+          <div class="hero-trend-card" [style.background]="zone.bgGradient">
+            <div class="htc-tags">
+              @for (tag of zone.tags; track tag) {
+                <span class="htc-tag">{{ tag }}</span>
+              }
+            </div>
+            <div class="htc-vibing">{{ zone.liveLabel }}</div>
+            <h2 class="htc-title">{{ zone.name }}</h2>
+            <div class="htc-footer">
+              <div class="htc-vibing-badge">
+                <span class="vib-dot"></span> VIBING
+              </div>
+              <button class="btn-join-zone">JOIN ZONE</button>
+            </div>
+          </div>
+        }
+
+        <!-- Match card -->
+        @if (zone.type === 'match') {
+          <div class="match-zone-card">
+            <div class="mzc-left">
+              <div class="mzc-avatar">{{ zone.bgGradient }}</div>
+              <div class="mzc-info">
+                <div class="mzc-name">{{ zone.name }}</div>
+                <div class="mzc-sub">{{ zone.subtitle }}</div>
+                <div class="mzc-active">
+                  <span class="active-dot"></span>
+                  {{ zone.activeCount }} ACTIVE NOW
+                </div>
+                <div class="mzc-tags">
+                  @for (tag of zone.tags; track tag) {
+                    <span class="mzc-tag">{{ tag }}</span>
+                  }
+                </div>
+              </div>
+            </div>
+            <div class="mzc-match">
+              <div class="match-pct">{{ zone.matchPct }}%</div>
+              <div class="match-label">Match</div>
+            </div>
+          </div>
+        }
+
+        <!-- Live jam card -->
+        @if (zone.type === 'live') {
+          <div class="live-zone-card">
+            <div class="lzc-left">
+              <div class="lzc-avatar">{{ zone.bgGradient }}</div>
+              <div class="lzc-info">
+                <div class="lzc-name">{{ zone.name }}</div>
+                <div class="lzc-sub">{{ zone.subtitle }}</div>
+                <div class="lzc-tags">
+                  @for (tag of zone.tags; track tag) {
+                    <span class="mzc-tag">{{ tag }}</span>
+                  }
+                </div>
+              </div>
+            </div>
+            <span class="live-jam-badge">{{ zone.liveLabel }}</span>
+          </div>
+        }
+      }
+
+      <!-- Nearby Heatmap -->
+      <div class="heatmap-section">
+        <div class="heatmap-label">Nearby Heatmap</div>
+        <div class="heatmap-card">
+          <div class="heatmap-grid">
+            @for (dot of heatDots; track dot.id) {
+              <div class="heat-dot"
+                [style.left]="dot.x + '%'" [style.top]="dot.y + '%'"
+                [style.width]="dot.size + 'px'" [style.height]="dot.size + 'px'"
+                [style.background]="dot.color" [style.opacity]="dot.opacity + ''"></div>
+            }
+          </div>
+          <div class="heatmap-overlay-label">🔴 Activity Hotspots</div>
+          <button class="heatmap-open-btn">OPEN MAP</button>
         </div>
       </div>
-    }
-  </div>
 
-  <!-- Floating Compose Button -->
-  <div class="compose-fab-container">
-    <button class="compose-fab" (click)="openCompose()">+ Post Vibe</button>
-  </div>
+    </div>
+  }
 
-  <!-- Compose Modal -->
+  <!-- ═══════════════════ COMPOSE MODAL ═══════════════════ -->
   @if (showCompose()) {
     <div class="modal-backdrop" (click)="showCompose.set(false)">
       <div class="compose-modal" (click)="$event.stopPropagation()">
-        <div class="compose-header">
-          <h2 class="compose-title">Share Your Vibe</h2>
-          <button class="compose-close" (click)="showCompose.set(false)">✕</button>
-        </div>
-
-        <!-- Vibe Type Selector -->
-        <div class="type-selector">
-          @for (vt of vibeTypes; track vt.key) {
-            <button class="type-btn"
-              [class.selected]="composeType() === vt.key"
-              (click)="composeType.set(vt.key)">
-              {{ vt.emoji }} {{ vt.label }}
-            </button>
+        <div class="compose-handle"></div>
+        <h4>Share your vibe</h4>
+        <div class="compose-types">
+          @for (t of vibeTypes; track t.key) {
+            <div class="type-chip" [class.active]="composeType() === t.key"
+              (click)="composeType.set(t.key)">
+              {{ t.emoji }} {{ t.label }}
+            </div>
           }
         </div>
-
-        <!-- Text Input -->
-        <textarea class="compose-ta" [(ngModel)]="composeText"
-          [placeholder]="getPlaceholder()"
-          maxlength="500"></textarea>
-
-        <!-- Anonymous Toggle -->
-        <div class="anon-row">
-          <label class="anon-label">Post Anonymously</label>
-          <div class="toggle-switch" (click)="composeAnon = !composeAnon">
-            <div class="toggle-thumb" [class.on]="composeAnon"></div>
-          </div>
+        <textarea class="input compose-textarea" [(ngModel)]="composeText"
+          [placeholder]="getPlaceholder()" maxlength="280" rows="4"></textarea>
+        <div class="compose-footer">
+          <label class="anon-toggle">
+            <input type="checkbox" [(ngModel)]="composeAnon" />
+            <span>Post anonymously</span>
+          </label>
+          <button class="btn btn-primary btn-sm" (click)="postVibe()"
+            [disabled]="!composeText.trim()">Post →</button>
         </div>
-
-        <!-- Post Button -->
-        <button class="post-btn" [disabled]="!composeText.trim()" (click)="postVibe()">
-          Post 🚀
-        </button>
       </div>
     </div>
   }
+
 </div>

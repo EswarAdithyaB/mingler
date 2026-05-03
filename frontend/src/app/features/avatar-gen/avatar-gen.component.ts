@@ -2,6 +2,11 @@ import { Component, signal, ElementRef, ViewChild, OnDestroy } from '@angular/co
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 🔑 PASTE YOUR HUGGING FACE TOKEN HERE
+//    Get one free at https://huggingface.co/settings/tokens  (Read access)
+// ─────────────────────────────────────────────────────────────────────────────
+// Backend proxy — calls Qwen Image Edit (HF) server-side with the selfie
 const AVATAR_API = 'http://localhost:3000/api/avatar/generate';
 const DEFAULT_PROMPT =
   'Transform this person into an animated cartoon avatar, ' +
@@ -15,7 +20,7 @@ type Stage = 'idle' | 'camera' | 'preview' | 'generating' | 'result' | 'error';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './avatar-gen.component.html',
-  styleUrls: ['./avatar-gen.component.scss']
+  styleUrl: './avatar-gen.component.scss'
 })
 export class AvatarGenComponent implements OnDestroy {
   @ViewChild('videoEl') videoEl!: ElementRef<HTMLVideoElement>;
@@ -25,7 +30,7 @@ export class AvatarGenComponent implements OnDestroy {
   selfieDataUrl = signal<string | null>(null);
   resultUrl    = signal<string | null>(null);
   errorMsg     = signal<string>('');
-  hasToken     = signal(true);
+  hasToken     = signal(true); // Pollinations.ai — no token required
 
   prompt = DEFAULT_PROMPT;
   private stream: MediaStream | null = null;
@@ -44,6 +49,8 @@ export class AvatarGenComponent implements OnDestroy {
 
   goBack() { this.router.navigate(['/app/profile']); }
 
+  // ── Camera ────────────────────────────────────────────────────────────────
+
   async startCamera() {
     this.stage.set('camera');
     await this._openStream();
@@ -56,6 +63,7 @@ export class AvatarGenComponent implements OnDestroy {
         video: { facingMode: this.facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: false
       });
+      // small delay so ViewChild is rendered
       setTimeout(() => {
         if (this.videoEl?.nativeElement) {
           this.videoEl.nativeElement.srcObject = this.stream;
@@ -88,6 +96,7 @@ export class AvatarGenComponent implements OnDestroy {
     canvas.width  = video.videoWidth  || 640;
     canvas.height = video.videoHeight || 480;
     const ctx = canvas.getContext('2d')!;
+    // mirror to match preview
     ctx.translate(canvas.width, 0);
     ctx.scale(-1, 1);
     ctx.drawImage(video, 0, 0);
@@ -104,6 +113,8 @@ export class AvatarGenComponent implements OnDestroy {
     clearInterval(this.stepTimer);
     this.startCamera();
   }
+
+  // ── Generation ────────────────────────────────────────────────────────────
 
   async generate() {
     this.stage.set('generating');
@@ -122,12 +133,16 @@ export class AvatarGenComponent implements OnDestroy {
     }
   }
 
+  /**
+   * POSTs selfie + prompt to backend. Backend handles all queue polling
+   * server-side and returns the final image binary directly.
+   */
   private async _generateWithPollinations(prompt: string): Promise<string> {
     const selfie = this.selfieDataUrl();
     if (!selfie) throw new Error('No selfie found — please retake the photo.');
 
     const controller = new AbortController();
-    const timeout    = setTimeout(() => controller.abort(), 150_000);
+    const timeout    = setTimeout(() => controller.abort(), 150_000); // 2.5 min
 
     try {
       const response = await fetch(AVATAR_API, {
@@ -169,7 +184,18 @@ export class AvatarGenComponent implements OnDestroy {
     }, 4500);
   }
 
+  private _dataUrlToBlob(dataUrl: string): Blob {
+    const [header, data] = dataUrl.split(',');
+    const mime = header.match(/:(.*?);/)![1];
+    const bytes = atob(data);
+    const arr = new Uint8Array(bytes.length);
+    for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+    return new Blob([arr], { type: mime });
+  }
+
   saveAvatar() {
+    // In a real app this would update the user's profile avatar
+    // For now download the image
     const a = document.createElement('a');
     a.href = this.resultUrl()!;
     a.download = 'my-avatar.png';
